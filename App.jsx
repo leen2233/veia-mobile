@@ -1,54 +1,32 @@
 // In App.js in a new project
 
 import * as React from 'react';
-import {View, Text, TouchableOpacity} from 'react-native';
-import {NavigationContainer} from '@react-navigation/native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {Button} from 'react-native';
-import {Menu, MenuIcon, Search} from 'lucide-react-native';
+import {NavigationContainer, useNavigation} from '@react-navigation/native';
+import {createDrawerNavigator} from '@react-navigation/drawer';
+import HomeScreen from './src/Home';
+import DrawerContent from './src/Drawer';
 
-function HomeScreen() {
-  return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#141516',
-      }}>
-      <Text>Home Screen</Text>
-    </View>
-  );
-}
-
-const Stack = createNativeStackNavigator();
+const Drawer = createDrawerNavigator();
 
 function RootStack() {
   return (
-    <Stack.Navigator
+    <Drawer.Navigator
+      drawerContent={props => <DrawerContent {...props} />}
       screenOptions={{
         headerStyle: {backgroundColor: '#202324'},
         headerTintColor: '#fff',
         headerTitleAlign: 'center',
+        drawerStyle: {
+          backgroundColor: '#202324',
+          width: 300,
+        },
       }}>
-      <Stack.Screen
+      <Drawer.Screen
         name="Home"
         component={HomeScreen}
-        options={{
-          headerRight: () => (
-            <TouchableOpacity onPress={() => alert('This is a button!')}>
-              <Search color={'white'} size={20} />
-            </TouchableOpacity>
-          ),
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => alert('This is a button!')}>
-              <MenuIcon color={'white'} size={20} />
-            </TouchableOpacity>
-          ),
-          title: 'Veia',
-        }}
+        options={{headerShown: false}}
       />
-    </Stack.Navigator>
+    </Drawer.Navigator>
   );
 }
 
