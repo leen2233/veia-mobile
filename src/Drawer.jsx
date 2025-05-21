@@ -3,7 +3,6 @@ import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 function DrawerContent({navigation}) {
   return (
     <View style={styles.container}>
-      {/* Custom button to navigate to Home */}
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate('Home')}>
@@ -17,10 +16,10 @@ export default DrawerContent;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, // fill drawer height
+    flex: 1,
     backgroundColor: '#202324',
-    paddingTop: 40, // top padding
-    paddingHorizontal: 20, // side padding
+    paddingTop: 40,
+    paddingHorizontal: 20,
   },
   button: {
     marginVertical: 10,
