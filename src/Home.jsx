@@ -1,4 +1,4 @@
-import {MenuIcon, Search} from 'lucide-react-native';
+import {MenuIcon, Search, CheckCheck} from 'lucide-react-native';
 import {useEffect, useState} from 'react';
 import {
   View,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import {ScrollView} from 'react-native-gesture-handler';
 import {format, isToday, differenceInMinutes, parseISO} from 'date-fns';
+import Avatar from './components/avatar';
 
 const Header = ({navigation}) => {
   return (
@@ -82,6 +83,7 @@ function HomeScreen({navigation}) {
             'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/82.jpg',
           last_message: "I'm doing well, thanks!",
           last_message_timestamp: '2024-10-27T10:45:00Z',
+          read: true,
         },
         {
           id: 'c789',
@@ -144,6 +146,7 @@ function HomeScreen({navigation}) {
             'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/89.jpg',
           last_message: "I'm doing great. Thanks",
           last_message_timestamp: '2024-10-27T12:45:00Z',
+          read: true,
         },
         {
           id: 'c187',
@@ -220,15 +223,13 @@ function HomeScreen({navigation}) {
       <Header navigation={navigation} />
       <ScrollView style={styles.chatItemsContainer}>
         {chats.map(chat => (
-          <TouchableNativeFeedback key={chat.id}>
+          <TouchableNativeFeedback
+            key={chat.id}
+            onPress={() => navigation.navigate('Chat')}>
             <View style={styles.chatItem}>
-              <View style={{flexDirection: 'row', gap: 20}}>
-                <Image
-                  source={{
-                    uri: chat.avatar,
-                  }}
-                  style={styles.chatItemAvatar}
-                />
+              <View
+                style={{flexDirection: 'row', gap: 20, alignItems: 'center'}}>
+                <Avatar url={chat.avatar} width={50} />
                 <View style={{justifyContent: 'center', gap: 5}}>
                   <Text style={{color: 'white', fontSize: 18}}>
                     {chat.name}
@@ -242,6 +243,11 @@ function HomeScreen({navigation}) {
                 </Text>
                 {chat.unread_count && (
                   <Text style={styles.unreadBadge}>{chat.unread_count}</Text>
+                )}
+                {chat.read && (
+                  <Text style={styles.read}>
+                    <CheckCheck color={'#c96442'} size={18} />
+                  </Text>
                 )}
               </View>
             </View>
@@ -283,11 +289,6 @@ const styles = StyleSheet.create({
     borderBottomColor: '#4A4F4B',
     borderBottomWidth: 1,
   },
-  chatItemAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-  },
   unreadBadge: {
     backgroundColor: '#c96442',
     color: 'white',
@@ -299,5 +300,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  read: {
+    color: '#c96442',
   },
 });

@@ -5,6 +5,7 @@ import {NavigationContainer, useNavigation} from '@react-navigation/native';
 import {createDrawerNavigator} from '@react-navigation/drawer';
 import HomeScreen from './src/Home';
 import DrawerContent from './src/Drawer';
+import ChatScreen from './src/Chat';
 
 const Drawer = createDrawerNavigator();
 
@@ -24,6 +25,11 @@ function RootStack() {
       <Drawer.Screen
         name="Home"
         component={HomeScreen}
+        options={{headerShown: false}}
+      />
+      <Drawer.Screen
+        name="Chat"
+        component={ChatScreen}
         options={{headerShown: false}}
       />
     </Drawer.Navigator>
