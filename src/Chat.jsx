@@ -85,22 +85,29 @@ const Chat = ({navigation}) => {
         text: 'I have a meeting at 2pm',
         sender: 'me',
         timestamp: '2023-10-01T12:05:00Z',
+        status: 'read',
       },
       {
         text: 'Good luck with that!',
         sender: 'other',
         timestamp: '2023-10-01T12:06:00Z',
       },
-      {text: 'Thanks!', sender: 'me', timestamp: '2023-10-01T12:07:00Z'},
+      {
+        text: 'Thanks!',
+        sender: 'me',
+        timestamp: '2023-10-01T12:07:00Z',
+        status: 'read',
+      },
       {
         text: 'Should we meet for coffee after?',
         sender: 'other',
         timestamp: '2023-10-01T12:08:00Z',
       },
       {
-        text: 'Sure, sounds great!',
+        text: 'Sure, sounds great! Sure, sounds great Sure, sounds great! Sure, sounds great Sure, sounds great! Sure, sounds great Sure, sounds great! Sure, sounds great ',
         sender: 'me',
         timestamp: '2023-10-01T12:09:00Z',
+        status: 'sent',
       },
     ]);
   }, []);
@@ -196,8 +203,9 @@ const Chat = ({navigation}) => {
             <Message
               key={index}
               text={message.text}
-              time={message.time}
+              time={message.timestamp}
               sender={message.sender}
+              status={message.status}
             />
           ))}
         </ScrollView>

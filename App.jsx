@@ -6,6 +6,7 @@ import {createDrawerNavigator} from '@react-navigation/drawer';
 import HomeScreen from './src/Home';
 import DrawerContent from './src/Drawer';
 import ChatScreen from './src/Chat';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
 const Drawer = createDrawerNavigator();
 
@@ -39,7 +40,9 @@ function RootStack() {
 export default function App() {
   return (
     <NavigationContainer>
-      <RootStack />
+      <GestureHandlerRootView style={{flex: 1}}>
+        <RootStack />
+      </GestureHandlerRootView>
     </NavigationContainer>
   );
 }
