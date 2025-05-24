@@ -1,10 +1,12 @@
 import {
   ArrowLeft,
   EllipsisVertical,
+  MessageCircleReply,
   Mic,
   Paperclip,
   Send,
   Smile,
+  X,
 } from 'lucide-react-native';
 import {
   Keyboard,
@@ -20,6 +22,7 @@ import {ScrollView} from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import {useEffect, useRef, useState} from 'react';
@@ -29,8 +32,10 @@ const Chat = ({navigation}) => {
   const [data, setData] = useState([]);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [replyingTo, setReplyingTo] = useState('');
   const scrollRef = useRef(null);
   const showSend = useSharedValue(inputValue.length > 0);
+  const replyBarHeight = useSharedValue(0);
 
   useEffect(() => {
     setData([
@@ -159,6 +164,22 @@ const Chat = ({navigation}) => {
     display: showSend.value ? 'none' : 'flex',
   }));
 
+  useEffect(() => {
+    if (replyingTo) {
+      replyBarHeight.value = withTiming(50, {duration: 300});
+      scrollRef.current.scrollToEnd({animated: true});
+    } else {
+      replyBarHeight.value = withTiming(0, {duration: 300});
+    }
+  }, [replyingTo]);
+
+  const replyingToAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      height: replyBarHeight.value,
+      overflow: 'hidden',
+    };
+  });
+
   return (
     <View style={{flex: 1}}>
       <KeyboardAvoidingView
@@ -202,40 +223,60 @@ const Chat = ({navigation}) => {
           {data.map((message, index) => (
             <Message
               key={index}
-              text={message.text}
-              time={message.timestamp}
-              sender={message.sender}
-              status={message.status}
+              message={message}
+              onReply={message => {
+                setReplyingTo(message);
+              }}
             />
           ))}
         </ScrollView>
-        <View style={styles.inputContainer}>
-          <TouchableNativeFeedback>
-            <Smile color={'white'} />
-          </TouchableNativeFeedback>
-          <TextInput
-            style={styles.input}
-            placeholder="Message"
-            placeholderTextColor={'white'}
-            value={inputValue}
-            onChangeText={text => setInputValue(text)}
-          />
-          <Animated.View style={sendStyle}>
-            <TouchableNativeFeedback onPress={sendMessage}>
-              <View style={styles.sendButton}>
-                <Send color={'white'} />
-              </View>
-            </TouchableNativeFeedback>
-          </Animated.View>
 
-          <Animated.View style={[{flexDirection: 'row', gap: 10}, attachStyle]}>
-            <TouchableNativeFeedback>
-              <Paperclip color={'white'} />
-            </TouchableNativeFeedback>
-            <TouchableNativeFeedback>
-              <Mic color={'white'} />
-            </TouchableNativeFeedback>
+        <View>
+          <Animated.View style={[styles.replyingTo, replyingToAnimatedStyle]}>
+            {replyingTo && (
+              <>
+                <MessageCircleReply color={'#c96442'} />
+                <Text style={{color: 'white', width: '80%'}} numberOfLines={1}>
+                  {replyingTo.text}
+                </Text>
+                <TouchableNativeFeedback
+                  onPress={() => {
+                    setReplyingTo(null);
+                  }}>
+                  <X color={'white'} />
+                </TouchableNativeFeedback>
+              </>
+            )}
           </Animated.View>
+          <View style={styles.inputContainer}>
+            <TouchableNativeFeedback>
+              <Smile color={'white'} />
+            </TouchableNativeFeedback>
+            <TextInput
+              style={styles.input}
+              placeholder="Message"
+              placeholderTextColor={'white'}
+              value={inputValue}
+              onChangeText={text => setInputValue(text)}
+            />
+            <Animated.View style={sendStyle}>
+              <TouchableNativeFeedback onPress={sendMessage}>
+                <View style={styles.sendButton}>
+                  <Send color={'white'} />
+                </View>
+              </TouchableNativeFeedback>
+            </Animated.View>
+
+            <Animated.View
+              style={[{flexDirection: 'row', gap: 10}, attachStyle]}>
+              <TouchableNativeFeedback>
+                <Paperclip color={'white'} />
+              </TouchableNativeFeedback>
+              <TouchableNativeFeedback>
+                <Mic color={'white'} />
+              </TouchableNativeFeedback>
+            </Animated.View>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -270,7 +311,7 @@ const styles = StyleSheet.create({
     left: 0,
   },
   chatContainer: {
-    // flex: 1,
+    flex: 1,
     paddingTop: 90,
     backgroundColor: '#141516',
   },
@@ -300,5 +341,17 @@ const styles = StyleSheet.create({
     paddingRight: 2,
     paddingTop: 2,
     backgroundColor: '#c96442',
+  },
+  replyingTo: {
+    backgroundColor: '#202324',
+    // flex: 0.2,
+    borderBottomColor: 'grey',
+    borderBottomWidth: 1,
+    borderTopColor: 'grey',
+    borderTopWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    flexDirection: 'row',
   },
 });

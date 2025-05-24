@@ -6,6 +6,7 @@ import 'react-native-gesture-handler';
 
 import Animated, {
   interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -17,8 +18,8 @@ import {
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
 
-const Message = ({text, time, sender, status}) => {
-  const isMe = sender === 'me';
+const Message = ({message, onReply}) => {
+  const isMe = message.sender === 'me';
   const messageStyle = isMe ? styles.myMessage : styles.otherMessage;
   const offset = useSharedValue(0);
 
@@ -32,7 +33,11 @@ const Message = ({text, time, sender, status}) => {
         offset.value = Math.max(event.translationX, -80);
       }
     })
-    .onFinalize(() => {
+    .onFinalize(event => {
+      if (event.translationX < -40) {
+        runOnJS(onReply)(message);
+      }
+
       offset.value = withSpring(0);
     });
 
@@ -72,7 +77,7 @@ const Message = ({text, time, sender, status}) => {
     };
   });
 
-  const formattedTime = formatTimestamp(time);
+  const formattedTime = formatTimestamp(message.timestamp);
 
   return (
     <GestureDetector gesture={pan}>
@@ -82,13 +87,13 @@ const Message = ({text, time, sender, status}) => {
           <View style={styles.contentContainer}>
             <View style={styles.messageWrapper}>
               <Text style={styles.messageText}>
-                {text}
+                {message.text}
                 <Text style={[styles.timestampPlaceholder]}>
                   {formattedTime}
-                  {status === 'sent' ? (
+                  {message.status === 'sent' ? (
                     <Check color={'transparent'} size={18} />
                   ) : (
-                    status === 'read' && (
+                    message.status === 'read' && (
                       <CheckCheck color={'transparent'} size={18} />
                     )
                   )}
@@ -102,10 +107,10 @@ const Message = ({text, time, sender, status}) => {
                   }}>
                   {formattedTime}
                 </Text>
-                {status === 'sent' ? (
+                {message.status === 'sent' ? (
                   <Check size={18} color={'white'} />
                 ) : (
-                  status === 'read' && (
+                  message.status === 'read' && (
                     <CheckCheck
                       size={18}
                       color={'white'}
@@ -118,7 +123,7 @@ const Message = ({text, time, sender, status}) => {
           </View>
         </Animated.View>
         <Animated.View style={[styles.replyIconContainer, replyIconStyle]}>
-          <Reply size={24} color="#c96442" />
+          <Reply size={18} color="white" />
         </Animated.View>
       </View>
     </GestureDetector>
@@ -171,6 +176,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     zIndex: 1,
-    bottom: '40%',
+    top: '30%',
+    backgroundColor: '#c96442',
+    borderRadius: 20,
+    width: 25,
+    height: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
