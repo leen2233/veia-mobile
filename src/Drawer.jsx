@@ -1,13 +1,77 @@
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  TouchableNativeFeedback,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Avatar from './components/avatar';
+import {
+  Bookmark,
+  CircleUserRound,
+  Phone,
+  Settings,
+  UserRound,
+  Users,
+} from 'lucide-react-native';
 
 function DrawerContent({navigation}) {
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate('Home')}>
-        <Text style={styles.buttonText}>Go to Home</Text>
-      </TouchableOpacity>
+      <View style={styles.header}>
+        <Avatar
+          url={
+            'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/56.jpg'
+          }
+          width={60}
+        />
+        <Text
+          style={{
+            color: 'white',
+            fontSize: 20,
+            fontWeight: 'bold',
+          }}>
+          John Doe
+        </Text>
+        <Text style={{color: '#ababab'}}>+15598331751</Text>
+      </View>
+      <TouchableNativeFeedback>
+        <View style={styles.button}>
+          <CircleUserRound color={'#ababab'} size={22} />
+          <Text style={{color: 'white', fontSize: 16}}>My Profile</Text>
+        </View>
+      </TouchableNativeFeedback>
+      <View style={styles.divider}></View>
+      <TouchableNativeFeedback>
+        <View style={styles.button}>
+          <Users color={'#ababab'} size={22} />
+          <Text style={{color: 'white', fontSize: 16}}>New Group</Text>
+        </View>
+      </TouchableNativeFeedback>
+      <TouchableNativeFeedback>
+        <View style={styles.button}>
+          <UserRound color={'#ababab'} size={22} />
+          <Text style={{color: 'white', fontSize: 16}}>Contacts</Text>
+        </View>
+      </TouchableNativeFeedback>
+      <TouchableNativeFeedback>
+        <View style={styles.button}>
+          <Phone color={'#ababab'} size={22} />
+          <Text style={{color: 'white', fontSize: 16}}>Calls</Text>
+        </View>
+      </TouchableNativeFeedback>
+      <TouchableNativeFeedback>
+        <View style={styles.button}>
+          <Bookmark color={'#ababab'} size={22} />
+          <Text style={{color: 'white', fontSize: 16}}>Saved</Text>
+        </View>
+      </TouchableNativeFeedback>
+      <TouchableNativeFeedback>
+        <View style={styles.button}>
+          <Settings color={'#ababab'} size={22} />
+          <Text style={{color: 'white', fontSize: 16}}>Settings</Text>
+        </View>
+      </TouchableNativeFeedback>
     </View>
   );
 }
@@ -18,18 +82,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#202324',
-    paddingTop: 40,
-    paddingHorizontal: 20,
+  },
+  header: {
+    width: '100%',
+    height: 160,
+    backgroundColor: '#333333',
+    justifyContent: 'flex-end',
+    gap: 2,
+    padding: 10,
+    paddingBottom: 5,
   },
   button: {
-    marginVertical: 10,
-    paddingVertical: 12,
-    backgroundColor: '#333',
-    borderRadius: 8,
+    width: '100%',
+    height: 60,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    gap: 30,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
+  divider: {
+    height: 2,
+    width: '100%',
+    backgroundColor: '#4A4F4B',
   },
 });

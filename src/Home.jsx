@@ -1,11 +1,11 @@
-import {MenuIcon, Search, CheckCheck} from 'lucide-react-native';
-import {useEffect, useState} from 'react';
+import {MenuIcon, Search, CheckCheck, Pen} from 'lucide-react-native';
+import {useEffect, useState, useRef} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
+  Animated,
   TouchableNativeFeedback,
 } from 'react-native';
 import {ScrollView} from 'react-native-gesture-handler';
@@ -37,6 +37,10 @@ const Header = ({navigation}) => {
 
 function HomeScreen({navigation}) {
   const [chats, setChats] = useState([]);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const translateYAnim = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+  const scrollDirection = useRef('up');
 
   function formatTimestamp(timestamp) {
     const date =
@@ -49,23 +53,64 @@ function HomeScreen({navigation}) {
     }
 
     if (isToday(date)) {
-      return format(date, 'HH:mm'); // like "16:50"
+      return format(date, 'HH:mm');
     }
 
-    return format(date, 'MMM d'); // like "Apr 20"
+    return format(date, 'MMM d');
   }
+
+  const hideFloatingButton = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYAnim, {
+        toValue: 100,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const showFloatingButton = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateYAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handleScroll = event => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    const scrollDelta = currentScrollY - lastScrollY.current;
+
+    // Only react to significant scroll movements (threshold of 5px)
+    if (Math.abs(scrollDelta) > 5) {
+      if (scrollDelta > 0 && scrollDirection.current !== 'down') {
+        // Scrolling down
+        scrollDirection.current = 'down';
+        hideFloatingButton();
+      } else if (scrollDelta < 0 && scrollDirection.current !== 'up') {
+        // Scrolling up
+        scrollDirection.current = 'up';
+        showFloatingButton();
+      }
+    }
+
+    lastScrollY.current = currentScrollY;
+  };
 
   useEffect(() => {
     const fetchChats = async () => {
-      // try {
-      //   const response = await fetch(
-      //     'https://veia-chat.free.beeceptor.com/chats',
-      //   );
-      //   const data = await response.json();
-      //   setChats(data);
-      // } catch (error) {
-      //   console.error('Error fetching chats:', error);
-      // }
       setChats([
         {
           id: 'c123',
@@ -221,7 +266,10 @@ function HomeScreen({navigation}) {
         backgroundColor: '#141516',
       }}>
       <Header navigation={navigation} />
-      <ScrollView style={styles.chatItemsContainer}>
+      <ScrollView
+        style={styles.chatItemsContainer}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}>
         {chats.map(chat => (
           <TouchableNativeFeedback
             key={chat.id}
@@ -254,6 +302,20 @@ function HomeScreen({navigation}) {
           </TouchableNativeFeedback>
         ))}
       </ScrollView>
+      <Animated.View
+        style={[
+          styles.floatingButton,
+          {
+            opacity: fadeAnim,
+            transform: [{translateY: translateYAnim}],
+          },
+        ]}>
+        <TouchableNativeFeedback>
+          <View style={styles.floatingButtonInner}>
+            <Pen color={'white'} />
+          </View>
+        </TouchableNativeFeedback>
+      </Animated.View>
     </View>
   );
 }
@@ -303,5 +365,18 @@ const styles = StyleSheet.create({
   },
   read: {
     color: '#c96442',
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+  },
+  floatingButtonInner: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#c96442',
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
