@@ -325,19 +325,19 @@ export default HomeScreen;
 const styles = StyleSheet.create({
   header: {
     backgroundColor: '#202324',
-    padding: 20,
+    paddingHorizontal: 20,
     paddingBottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    height: 80,
+    height: 60,
     position: 'absolute',
     top: 0,
   },
   chatItemsContainer: {
     width: '100%',
-    marginTop: 80,
+    marginTop: 60,
   },
   chatItem: {
     width: '100%',
