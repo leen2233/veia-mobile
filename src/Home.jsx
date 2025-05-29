@@ -1,5 +1,5 @@
 import {MenuIcon, Search, CheckCheck, Pen} from 'lucide-react-native';
-import {useEffect, useState, useRef} from 'react';
+import {useEffect, useState, useRef, use} from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,11 @@ import {
 import {ScrollView} from 'react-native-gesture-handler';
 import {format, isToday, differenceInMinutes, parseISO} from 'date-fns';
 import Avatar from './components/avatar';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-const Header = ({navigation}) => {
+const Header = ({navigation, top}) => {
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, {padding: top, height: top + 60}]}>
       <TouchableOpacity onPress={() => navigation.openDrawer()}>
         <MenuIcon color={'white'} size={20} />
       </TouchableOpacity>
@@ -41,6 +42,7 @@ function HomeScreen({navigation}) {
   const translateYAnim = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('up');
+  const insets = useSafeAreaInsets();
 
   function formatTimestamp(timestamp) {
     const date =
@@ -265,9 +267,9 @@ function HomeScreen({navigation}) {
         justifyContent: 'center',
         backgroundColor: '#141516',
       }}>
-      <Header navigation={navigation} />
+      <Header navigation={navigation} top={insets.top} />
       <ScrollView
-        style={styles.chatItemsContainer}
+        style={[styles.chatItemsContainer, {marginTop: insets.top + 60}]}
         onScroll={handleScroll}
         scrollEventThrottle={16}>
         {chats.map(chat => (
@@ -331,13 +333,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    height: 60,
     position: 'absolute',
     top: 0,
   },
   chatItemsContainer: {
     width: '100%',
-    marginTop: 60,
   },
   chatItem: {
     width: '100%',

@@ -27,6 +27,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import {useEffect, useRef, useState} from 'react';
 import Message from './components/message';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const Chat = ({navigation}) => {
   const [data, setData] = useState([]);
@@ -36,6 +37,8 @@ const Chat = ({navigation}) => {
   const scrollRef = useRef(null);
   const showSend = useSharedValue(inputValue.length > 0);
   const replyBarHeight = useSharedValue(0);
+
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     setData([
@@ -186,7 +189,11 @@ const Chat = ({navigation}) => {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={isKeyboardVisible ? 0 : -50}>
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {paddingTop: insets.top, height: insets.top + 80},
+          ]}>
           <View style={{flexDirection: 'row', gap: 10, alignItems: 'center'}}>
             <TouchableNativeFeedback
               onPress={() => navigation.navigate('Home')}>
@@ -283,8 +290,6 @@ const Chat = ({navigation}) => {
   );
 };
 
-export default Chat;
-
 const styles = StyleSheet.create({
   container: {
     height: '100%',
@@ -293,7 +298,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    height: 80,
     width: '100%',
     backgroundColor: '#202324',
     flexDirection: 'row',
@@ -306,6 +310,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
+    borderTopWidth: 0,
     position: 'absolute',
     top: 0,
     left: 0,
@@ -355,3 +360,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
 });
+
+export default Chat;

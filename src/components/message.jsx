@@ -24,11 +24,10 @@ const Message = ({message, onReply}) => {
   const offset = useSharedValue(0);
 
   const pan = Gesture.Pan()
-    .activeOffsetX([-10, 10]) // Activates when horizontal movement exceeds 10 pixels
-    .failOffsetY([-5, 5]) // Fails if vertical movement is more than 5 pixels before activation
+    .activeOffsetX([-10, 100])
+    .failOffsetY([-5, 5])
     .onBegin(() => {})
     .onChange(event => {
-      // Only allow left swipes (negative translation) and limit
       if (event.translationX < 0) {
         offset.value = Math.max(event.translationX, -80);
       }
@@ -39,7 +38,8 @@ const Message = ({message, onReply}) => {
       }
 
       offset.value = withSpring(0);
-    });
+    })
+    .simultaneousWithExternalGesture(true);
 
   const animatedStyles = useAnimatedStyle(() => ({
     transform: [{translateX: offset.value}],
