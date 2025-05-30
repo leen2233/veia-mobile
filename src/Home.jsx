@@ -12,6 +12,11 @@ import {ScrollView} from 'react-native-gesture-handler';
 import {format, isToday, differenceInMinutes, parseISO} from 'date-fns';
 import Avatar from './components/avatar';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import Reanimated, {
+  interpolate,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
+import {useDrawerProgress} from '@react-navigation/drawer';
 
 const Header = ({navigation, top}) => {
   return (
@@ -43,6 +48,15 @@ function HomeScreen({navigation}) {
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('up');
   const insets = useSafeAreaInsets();
+  const progress = useDrawerProgress();
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const scale = interpolate(progress.value, [0, 1], [1, 0.99]);
+    const translateX = interpolate(progress.value, [0, 1], [0, 30]);
+    return {
+      transform: [{scale}, {translateX}],
+    };
+  });
 
   function formatTimestamp(timestamp) {
     const date =
@@ -260,13 +274,17 @@ function HomeScreen({navigation}) {
   }, []);
 
   return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#141516',
-      }}>
+    <Reanimated.View
+      style={[
+        {
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#141516',
+        },
+        ,
+        animatedStyle,
+      ]}>
       <Header navigation={navigation} top={insets.top} />
       <ScrollView
         style={[styles.chatItemsContainer, {marginTop: insets.top + 60}]}
@@ -287,7 +305,7 @@ function HomeScreen({navigation}) {
                   <Text style={{color: '#ababab'}}>{chat.last_message}</Text>
                 </View>
               </View>
-              <View style={{alignItems: 'center', gap: 6}}>
+              <View style={{alignItems: 'center', gap: 8}}>
                 <Text style={{color: '#ababab'}}>
                   {formatTimestamp(chat.last_message_timestamp)}
                 </Text>
@@ -318,7 +336,7 @@ function HomeScreen({navigation}) {
           </View>
         </TouchableNativeFeedback>
       </Animated.View>
-    </View>
+    </Reanimated.View>
   );
 }
 

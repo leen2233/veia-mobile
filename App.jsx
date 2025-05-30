@@ -6,12 +6,29 @@ import {NavigationContainer} from '@react-navigation/native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {createStackNavigator} from '@react-navigation/stack';
 import {Animated, StatusBar} from 'react-native';
+import {createDrawerNavigator} from '@react-navigation/drawer';
 
 const Stack = createStackNavigator();
+const Drawer = createDrawerNavigator();
+
+function HomeDrawer() {
+  return (
+    <Drawer.Navigator
+      drawerContent={props => <DrawerContent {...props} />}
+      screenOptions={{
+        headerShown: false,
+        drawerPosition: 'left',
+        swipeEnabled: true,
+        swipeEdgeWidth: 200,
+        drawerStyle: {width: 270},
+      }}>
+      <Drawer.Screen name="HomeMain" component={HomeScreen} />
+    </Drawer.Navigator>
+  );
+}
 
 function RootStack() {
   const forSlide = ({current, next, inverted, layouts: {screen}}) => {
-    console.log(current);
     const progress = Animated.add(
       current.progress.interpolate({
         inputRange: [0, 1],
@@ -63,7 +80,7 @@ function RootStack() {
       }}>
       <Stack.Screen
         name="Home"
-        component={HomeScreen}
+        component={HomeDrawer}
         options={{
           headerShown: false,
         }}

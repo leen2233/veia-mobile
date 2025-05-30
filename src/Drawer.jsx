@@ -25,15 +25,17 @@ function DrawerContent({navigation}) {
           }
           width={60}
         />
-        <Text
-          style={{
-            color: 'white',
-            fontSize: 20,
-            fontWeight: 'bold',
-          }}>
-          John Doe
-        </Text>
-        <Text style={{color: '#ababab'}}>+15598331751</Text>
+        <View style={{height: 60, justifyContent: 'center'}}>
+          <Text
+            style={{
+              color: 'white',
+              fontSize: 20,
+              fontWeight: 'bold',
+            }}>
+            John Doe
+          </Text>
+          <Text style={{color: '#ababab'}}>+15598331751</Text>
+        </View>
       </View>
       <TouchableNativeFeedback>
         <View style={styles.button}>
@@ -87,10 +89,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 160,
     backgroundColor: '#333333',
-    justifyContent: 'flex-end',
-    gap: 2,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 10,
     padding: 10,
-    paddingBottom: 5,
   },
   button: {
     width: '100%',
