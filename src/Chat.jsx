@@ -15,11 +15,13 @@ import {
   Text,
   TextInput,
   TouchableNativeFeedback,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import Avatar from './components/avatar';
 import {ScrollView} from 'react-native-gesture-handler';
 import Animated, {
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -28,6 +30,7 @@ import Animated, {
 import {useEffect, useRef, useState} from 'react';
 import Message from './components/message';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import Header from './components/chatHeader';
 
 const Chat = ({navigation}) => {
   const [data, setData] = useState([]);
@@ -177,9 +180,13 @@ const Chat = ({navigation}) => {
   }, [replyingTo]);
 
   const replyingToAnimatedStyle = useAnimatedStyle(() => {
+    const borderHeight = interpolate(replyBarHeight.value, [0, 50], [0, 1]);
+
     return {
       height: replyBarHeight.value,
       overflow: 'hidden',
+      borderTopWidth: borderHeight,
+      borderBottomWidth: borderHeight,
     };
   });
 
@@ -189,36 +196,7 @@ const Chat = ({navigation}) => {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={isKeyboardVisible ? 0 : -50}>
-        <View
-          style={[
-            styles.header,
-            {paddingTop: insets.top, height: insets.top + 80},
-          ]}>
-          <View style={{flexDirection: 'row', gap: 10, alignItems: 'center'}}>
-            <TouchableNativeFeedback
-              onPress={() => navigation.navigate('Home')}>
-              <ArrowLeft color={'white'} />
-            </TouchableNativeFeedback>
-            <Avatar
-              url={
-                'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/58.jpg'
-              }
-              width={50}
-            />
-            <View
-              style={{
-                flexDirection: 'column',
-                justifyContent: 'center',
-                gap: 5,
-              }}>
-              <Text style={{color: 'white', fontSize: 18}}>John Doe</Text>
-              <Text style={{color: '#ababab'}}>2 minute ago</Text>
-            </View>
-          </View>
-          <TouchableNativeFeedback>
-            <EllipsisVertical color={'white'} />
-          </TouchableNativeFeedback>
-        </View>
+        <Header top={insets.top} navigation={navigation} />
         <ScrollView
           style={styles.chatContainer}
           ref={scrollRef}
@@ -296,24 +274,6 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'column',
     flex: 1,
-  },
-  header: {
-    width: '100%',
-    backgroundColor: '#202324',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 10,
-    zIndex: 10,
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    borderColor: 'grey',
-    borderWidth: 1,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    borderTopWidth: 0,
-    position: 'absolute',
-    top: 0,
-    left: 0,
   },
   chatContainer: {
     flex: 1,

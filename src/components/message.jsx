@@ -150,6 +150,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 10,
+    paddingHorizontal: 15,
   },
   messageWrapper: {
     position: 'relative',
