@@ -1,5 +1,11 @@
-import {MenuIcon, Search, CheckCheck, Pen} from 'lucide-react-native';
-import {useEffect, useState, useRef, use} from 'react';
+import {
+  MenuIcon,
+  Search,
+  CheckCheck,
+  Pen,
+  ArrowLeft,
+} from 'lucide-react-native';
+import {useEffect, useState, useRef} from 'react';
 import {
   View,
   Text,
@@ -7,6 +13,8 @@ import {
   TouchableOpacity,
   Animated,
   TouchableNativeFeedback,
+  TextInput,
+  Keyboard,
 } from 'react-native';
 import {ScrollView} from 'react-native-gesture-handler';
 import {format, isToday, differenceInMinutes, parseISO} from 'date-fns';
@@ -15,34 +23,217 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Reanimated, {
   interpolate,
   useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import {useDrawerProgress} from '@react-navigation/drawer';
 
-const Header = ({navigation, top}) => {
+import smapleChatsData from '../data';
+
+const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
+  const [isConnected, setIsConnected] = useState(false);
+  const [dotCount, setDotCount] = useState(1);
+  const [searchText, setSearchText] = useState('');
+  const searchInputRef = useRef();
+
+  // Animation values
+  const bounceValue = useSharedValue(0);
+  const fadeValue = useSharedValue(1);
+  const scaleValue = useSharedValue(1);
+  const searchAnimValue = useSharedValue(0);
+  const headerContentOpacity = useSharedValue(1);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsConnected(prev => !prev);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!isConnected) {
+      const dotInterval = setInterval(() => {
+        setDotCount(prev => (prev % 3) + 1);
+      }, 500);
+      return () => clearInterval(dotInterval);
+    }
+  }, [isConnected]);
+
+  useEffect(() => {
+    fadeValue.value = withTiming(0, {duration: 200});
+    scaleValue.value = withTiming(0.8, {duration: 150});
+    const timer = setTimeout(() => {
+      fadeValue.value = withTiming(1, {duration: 300});
+      scaleValue.value = withSpring(1, {damping: 10, stiffness: 150});
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [isConnected]);
+
+  // Search animation effect
+  useEffect(() => {
+    if (isSearchOpen) {
+      headerContentOpacity.value = withTiming(0, {duration: 200});
+      searchAnimValue.value = withSpring(1, {
+        damping: 15,
+        stiffness: 150,
+      });
+      searchInputRef.current.focus();
+    } else {
+      searchAnimValue.value = withTiming(0, {duration: 200});
+      setTimeout(() => {
+        headerContentOpacity.value = withTiming(1, {duration: 300});
+      }, 100);
+
+      Keyboard.dismiss();
+    }
+  }, [isSearchOpen]);
+
+  const animatedTextStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{translateY: bounceValue.value}, {scale: scaleValue.value}],
+      opacity: fadeValue.value,
+    };
+  });
+
+  const headerContentStyle = useAnimatedStyle(() => {
+    return {
+      opacity: headerContentOpacity.value,
+      transform: [
+        {
+          scale: interpolate(headerContentOpacity.value, [0, 1], [0.8, 1]),
+        },
+      ],
+    };
+  });
+
+  const searchContainerStyle = useAnimatedStyle(() => {
+    return {
+      opacity: searchAnimValue.value,
+      transform: [
+        {
+          scale: interpolate(searchAnimValue.value, [0, 1], [0.9, 1]),
+        },
+        {
+          translateY: interpolate(searchAnimValue.value, [0, 1], [20, 0]),
+        },
+      ],
+    };
+  });
+
+  const handleSearchOpen = () => {
+    setIsSearchOpen(true);
+  };
+
+  const handleSearchClose = () => {
+    setIsSearchOpen(false);
+    setSearchText('');
+  };
+
+  const handleSearchSubmit = () => {
+    // Handle search logic here
+    console.log('Search:', searchText);
+    // You can add your search functionality here
+  };
+
+  const getDots = () => {
+    return '.'.repeat(dotCount);
+  };
+
   return (
     <View style={[styles.header, {padding: top, height: top + 60}]}>
-      <TouchableOpacity onPress={() => navigation.openDrawer()}>
-        <MenuIcon color={'white'} size={20} />
-      </TouchableOpacity>
-      <Text
-        style={{
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: '#fff',
-          textAlign: 'center',
-          marginVertical: 10,
-        }}>
-        Veia
-      </Text>
-      <TouchableOpacity onPress={() => alert('This is a button!')}>
-        <Search color={'white'} size={20} />
-      </TouchableOpacity>
+      <Reanimated.View
+        style={[
+          {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            position: 'absolute',
+            top: top,
+            left: 0,
+            right: 0,
+            paddingHorizontal: 16,
+            height: 60,
+          },
+          headerContentStyle,
+        ]}>
+        <TouchableOpacity onPress={() => navigation.openDrawer()}>
+          <MenuIcon color={'white'} size={20} />
+        </TouchableOpacity>
+
+        <Reanimated.Text
+          style={[
+            {
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: '#fff',
+              textAlign: 'center',
+              marginVertical: 10,
+              flex: 1,
+            },
+            animatedTextStyle,
+          ]}>
+          {isConnected ? 'Veia' : `Connecting${getDots()}`}
+        </Reanimated.Text>
+
+        <TouchableOpacity onPress={handleSearchOpen}>
+          <Search color={'white'} size={20} />
+        </TouchableOpacity>
+      </Reanimated.View>
+
+      {/* Search Input Container */}
+      <Reanimated.View
+        style={[
+          {
+            flexDirection: 'row',
+            alignItems: 'center',
+            position: 'absolute',
+            top: top,
+            left: 0,
+            right: 0,
+            paddingHorizontal: 16,
+            height: 60,
+            pointerEvents: isSearchOpen ? 'auto' : 'none',
+          },
+          searchContainerStyle,
+        ]}>
+        <TouchableOpacity
+          onPress={handleSearchClose}
+          style={{
+            marginRight: 12,
+            padding: 4,
+          }}>
+          <ArrowLeft color={'white'} size={20} />
+        </TouchableOpacity>
+
+        <TextInput
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: 25,
+            paddingHorizontal: 16,
+            color: 'white',
+            fontSize: 16,
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.3)',
+            alignItems: 'center',
+          }}
+          placeholder="Search..."
+          placeholderTextColor="rgba(255, 255, 255, 0.7)"
+          value={searchText}
+          onChangeText={setSearchText}
+          onSubmitEditing={handleSearchSubmit}
+          ref={searchInputRef}
+          returnKeyType="search"
+        />
+      </Reanimated.View>
     </View>
   );
 };
 
 function HomeScreen({navigation}) {
   const [chats, setChats] = useState([]);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const translateYAnim = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
@@ -127,151 +318,19 @@ function HomeScreen({navigation}) {
 
   useEffect(() => {
     const fetchChats = async () => {
-      setChats([
-        {
-          id: 'c123',
-          name: 'Alice',
-          avatar:
-            'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/58.jpg',
-          last_message: 'Hello, how are you?',
-          last_message_timestamp: '2024-10-27T10:30:00Z',
-          unread_count: 1,
-        },
-        {
-          id: 'c456',
-          name: 'Bob',
-          avatar:
-            'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/82.jpg',
-          last_message: "I'm doing well, thanks!",
-          last_message_timestamp: '2024-10-27T10:45:00Z',
-          read: true,
-        },
-        {
-          id: 'c789',
-          name: 'Charlie',
-          avatar:
-            'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/49.jpg',
-          last_message: 'Great to hear that.',
-          last_message_timestamp: '2024-10-27T11:00:00Z',
-          unread_count: 9,
-        },
-        {
-          id: 'c101',
-          name: 'David',
-          avatar: 'https://avatars.githubusercontent.com/u/66113213',
-          last_message: 'How about you?',
-          last_message_timestamp: '2024-10-27T11:15:00Z',
-        },
-        {
-          id: 'c121',
-          name: 'Eve',
-          avatar:
-            'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/40.jpg',
-          last_message: 'Fine, thank you.',
-          last_message_timestamp: '2024-10-27T11:30:00Z',
-        },
-        {
-          id: 'c132',
-          name: 'Frank',
-          avatar:
-            'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/57.jpg',
-          last_message: 'Nice to hear.',
-          last_message_timestamp: '2024-10-27T11:45:00Z',
-        },
-        {
-          id: 'c153',
-          name: 'Grace',
-          avatar: 'https://avatars.githubusercontent.com/u/14043520',
-          last_message: 'Yes, everything is great!',
-          last_message_timestamp: '2024-10-27T12:00:00Z',
-          unread_count: 3,
-        },
-        {
-          id: 'c164',
-          name: 'Hannah',
-          avatar: 'https://avatars.githubusercontent.com/u/10937239',
-          last_message: 'How is work going?',
-          last_message_timestamp: '2024-10-27T12:15:00Z',
-        },
-        {
-          id: 'c175',
-          name: 'Ivy',
-          avatar: 'https://avatars.githubusercontent.com/u/9225634',
-          last_message: 'Very good, and you?',
-          last_message_timestamp: '2024-10-27T12:30:00Z',
-        },
-        {
-          id: 'c186',
-          name: 'Jack',
-          avatar:
-            'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/89.jpg',
-          last_message: "I'm doing great. Thanks",
-          last_message_timestamp: '2024-10-27T12:45:00Z',
-          read: true,
-        },
-        {
-          id: 'c187',
-          name: 'Lena',
-          avatar:
-            'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/14.jpg',
-          last_message: 'Just got back from vacation 😎',
-          last_message_timestamp: '2024-10-27T13:15:42Z',
-        },
-        {
-          id: 'c188',
-          name: 'Miguel',
-          avatar: 'https://avatars.githubusercontent.com/u/53592073',
-          last_message: "Can't talk now, coffee is life ☕",
-          last_message_timestamp: '2024-10-27T14:03:18Z',
-        },
-        {
-          id: 'c189',
-          name: 'Aisha',
-          avatar: 'https://avatars.githubusercontent.com/u/9038191',
-          last_message: 'Lol that was wild',
-          last_message_timestamp: '2024-10-27T14:25:59Z',
-        },
-        {
-          id: 'c190',
-          name: 'Luca',
-          avatar: 'https://avatars.githubusercontent.com/u/89960459',
-          last_message: 'You free tonight?',
-          last_message_timestamp: '2024-10-27T15:01:07Z',
-        },
-        {
-          id: 'c191',
-          name: 'Zara',
-          avatar: 'https://avatars.githubusercontent.com/u/86530961',
-          last_message: 'Meeting ran long 😩',
-          last_message_timestamp: '2024-10-27T15:36:45Z',
-        },
-        {
-          id: 'c192',
-          name: 'Noah',
-          avatar: 'https://avatars.githubusercontent.com/u/33398833',
-          last_message: 'Did you see the news?',
-          last_message_timestamp: '2024-10-27T16:12:30Z',
-        },
-        {
-          id: 'c193',
-          name: 'Yuki',
-          avatar:
-            'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/56.jpg',
-          last_message: 'BRB, making noodles 🍜',
-          last_message_timestamp: '2024-10-27T16:48:13Z',
-        },
-        {
-          id: 'c194',
-          name: 'Omar',
-          avatar: 'https://avatars.githubusercontent.com/u/74700528',
-          last_message: 'What time is the game?',
-          last_message_timestamp: '2024-10-27T17:23:01Z',
-        },
-      ]);
+      setChats(smapleChatsData);
     };
 
     fetchChats();
   }, []);
+
+  useEffect(() => {
+    if (isSearchOpen) {
+      setChats([]);
+    } else {
+      setChats(smapleChatsData);
+    }
+  }, [isSearchOpen]);
 
   return (
     <Reanimated.View
@@ -285,7 +344,12 @@ function HomeScreen({navigation}) {
         ,
         animatedStyle,
       ]}>
-      <Header navigation={navigation} top={insets.top} />
+      <Header
+        navigation={navigation}
+        top={insets.top}
+        isSearchOpen={isSearchOpen}
+        setIsSearchOpen={setIsSearchOpen}
+      />
       <ScrollView
         style={[styles.chatItemsContainer, {marginTop: insets.top + 60}]}
         onScroll={handleScroll}
