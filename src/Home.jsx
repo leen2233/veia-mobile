@@ -30,12 +30,17 @@ import Reanimated, {
 import {useDrawerProgress} from '@react-navigation/drawer';
 
 import smapleChatsData from '../data';
+import {useSelector} from 'react-redux';
 
 const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
-  const [isConnected, setIsConnected] = useState(false);
+  const isConnecting = useSelector(state => state.isConnecting.state);
   const [dotCount, setDotCount] = useState(1);
   const [searchText, setSearchText] = useState('');
   const searchInputRef = useRef();
+
+  useEffect(() => {
+    console.log('isConnecting', isConnecting);
+  }, [isConnecting]);
 
   // Animation values
   const bounceValue = useSharedValue(0);
@@ -45,20 +50,13 @@ const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
   const headerContentOpacity = useSharedValue(1);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setIsConnected(prev => !prev);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (!isConnected) {
+    if (isConnecting) {
       const dotInterval = setInterval(() => {
         setDotCount(prev => (prev % 3) + 1);
       }, 500);
       return () => clearInterval(dotInterval);
     }
-  }, [isConnected]);
+  }, [isConnecting]);
 
   useEffect(() => {
     fadeValue.value = withTiming(0, {duration: 200});
@@ -68,7 +66,7 @@ const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
       scaleValue.value = withSpring(1, {damping: 10, stiffness: 150});
     }, 200);
     return () => clearTimeout(timer);
-  }, [isConnected]);
+  }, [isConnecting]);
 
   // Search animation effect
   useEffect(() => {
@@ -173,7 +171,7 @@ const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
             },
             animatedTextStyle,
           ]}>
-          {isConnected ? 'Veia' : `Connecting${getDots()}`}
+          {isConnecting ? `Connecting${getDots()}` : 'Veia'}
         </Reanimated.Text>
 
         <TouchableOpacity onPress={handleSearchOpen}>

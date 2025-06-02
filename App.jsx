@@ -1,12 +1,18 @@
 import HomeScreen from './src/Home';
 import DrawerContent from './src/Drawer';
 import ChatScreen from './src/Chat';
-import React from 'react';
+import React, {useEffect} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {createStackNavigator} from '@react-navigation/stack';
 import {Animated, StatusBar} from 'react-native';
 import {createDrawerNavigator} from '@react-navigation/drawer';
+import WebsocketService from './src/lib/WebsocketService';
+import {Provider, useDispatch} from 'react-redux';
+import store from './src/state/store';
+import {setIsConnecting} from './src/state/actions';
+import LoginPage from './src/Login';
+import RegisterPage from './src/Register';
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -28,6 +34,17 @@ function HomeDrawer() {
 }
 
 function RootStack() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    WebsocketService.setStatusCallback(status => {
+      console.log('dispatch called', status);
+      dispatch(setIsConnecting(status));
+    });
+
+    WebsocketService.connect();
+  }, []);
+
   const forSlide = ({current, next, inverted, layouts: {screen}}) => {
     const progress = Animated.add(
       current.progress.interpolate({
@@ -77,7 +94,18 @@ function RootStack() {
         swipeEnabled: true,
         overlayColor: 'rgba(0, 0, 0, 0.5)',
         detachPreviousScreen: false,
-      }}>
+      }}
+      initialRouteName="Login">
+      <Stack.Screen
+        name="Login"
+        component={LoginPage}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="Register"
+        component={RegisterPage}
+        options={{headerShown: false}}
+      />
       <Stack.Screen
         name="Home"
         component={HomeDrawer}
@@ -109,15 +137,17 @@ function RootStack() {
 
 export default function App() {
   return (
-    <NavigationContainer style={{flex: 1}}>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle="light-content"
-      />
-      <GestureHandlerRootView style={{flex: 1}}>
-        <RootStack />
-      </GestureHandlerRootView>
-    </NavigationContainer>
+    <Provider store={store}>
+      <NavigationContainer style={{flex: 1}}>
+        <StatusBar
+          translucent
+          backgroundColor="transparent"
+          barStyle="light-content"
+        />
+        <GestureHandlerRootView style={{flex: 1}}>
+          <RootStack />
+        </GestureHandlerRootView>
+      </NavigationContainer>
+    </Provider>
   );
 }
