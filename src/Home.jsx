@@ -28,9 +28,11 @@ import Reanimated, {
   withTiming,
 } from 'react-native-reanimated';
 import {useDrawerProgress} from '@react-navigation/drawer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import smapleChatsData from '../data';
 import {useSelector} from 'react-redux';
+import WebsocketService from './lib/WebsocketService';
 
 const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
   const isConnecting = useSelector(state => state.isConnecting.state);
@@ -67,6 +69,44 @@ const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
     }, 200);
     return () => clearTimeout(timer);
   }, [isConnecting]);
+
+  useEffect(() => {
+    const checkAuthentication = async () => {
+      const accessToken = await AsyncStorage.getItem('accessToken');
+      if (!accessToken) {
+        navigation.navigate('Login');
+      } else {
+        WebsocketService.addListener(handleResponse);
+        data = {action: 'authenticate', data: {access_token: accessToken}};
+        WebsocketService.send(data);
+      }
+    };
+
+    checkAuthentication();
+  }, []);
+
+  const handleResponse = async data => {
+    if (data.action == 'authenticate') {
+      if (!data.success) {
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
+        data = {
+          action: 'refresh_access_token',
+          data: {refresh_token: refreshToken},
+        };
+        WebsocketService.send(data);
+      }
+    } else if (data.action == 'refresh_access_token') {
+      if (data.success) {
+        const accessToken = data.data.access_token;
+        data = {action: 'authenticate', data: {access_token: accessToken}};
+        await AsyncStorage.setItem('accessToken', accessToken);
+      } else {
+        AsyncStorage.removeItem('accessToken');
+        AsyncStorage.removeItem('refreshToken');
+        navigation.navigate('Login');
+      }
+    }
+  };
 
   // Search animation effect
   useEffect(() => {

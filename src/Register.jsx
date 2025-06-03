@@ -11,8 +11,16 @@ import {
   View,
 } from 'react-native';
 
+import {useSelector} from 'react-redux';
+import WebsocketService from './lib/WebsocketService';
+
 const RegisterPage = ({navigation}) => {
   const [isKeyboardVisible, setIsKeyboardVisible] = useState();
+  const isConnecting = useSelector(state => state.isConnecting.state);
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -26,11 +34,37 @@ const RegisterPage = ({navigation}) => {
       () => setIsKeyboardVisible(false),
     );
 
+    WebsocketService.addListener(handleResponse);
+
     return () => {
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
     };
   }, []);
+
+  const handleResponse = data => {
+    if (data.action == 'sign_up') {
+      if (data.success) {
+        accessToken = data.data.access;
+        refreshToken = data.data.refresh;
+
+        AsyncStorage.setItem('accessToken', accessToken);
+        AsyncStorage.setItem('refreshToken', refreshToken);
+        WebsocketService.removeListener(handleResponse);
+        navigation.navigate('Home');
+      } else {
+        setErrors(data.data);
+      }
+    }
+  };
+
+  const submitRegister = () => {
+    data = {
+      action: 'sign_up',
+      data: {username: username, password: password, email: email},
+    };
+    WebsocketService.send(data);
+  };
 
   return (
     <KeyboardAvoidingView
@@ -40,43 +74,82 @@ const RegisterPage = ({navigation}) => {
       <Image source={require('./assets/logo.png')} style={styles.logoImage} />
       <Text style={styles.title}>Veia</Text>
       <Text style={styles.subtitle}>Join by creating account</Text>
+      {errors.message && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorMessage}>{errors.message}</Text>
+        </View>
+      )}
       <View style={styles.inputGroup}>
-        <Text style={styles.inputTitle}>Username</Text>
+        <Text
+          style={[
+            styles.inputTitle,
+            {color: errors.username ? '#c14646' : 'white'},
+          ]}>
+          {errors.username ? '* ' + errors.username : 'Username'}
+        </Text>
         <View style={styles.input}>
           <User color={'#898f99'} />
           <TextInput
             style={styles.textInput}
             placeholder="Choose a username"
             placeholderTextColor={'#898f99'}
+            value={username}
+            onChangeText={text => {
+              setUsername(text);
+            }}
           />
         </View>
       </View>
       <View style={styles.inputGroup}>
-        <Text style={styles.inputTitle}>Email</Text>
+        <Text
+          style={[
+            styles.inputTitle,
+            {color: errors.email ? '#c14646' : 'white'},
+          ]}>
+          {errors.email ? '* ' + errors.email : 'Email'}
+        </Text>
         <View style={styles.input}>
           <Mail width={20} color={'#898f99'} style={{marginHorizontal: 2}} />
           <TextInput
             style={styles.textInput}
             placeholder="Enter your email"
             placeholderTextColor={'#898f99'}
+            value={email}
+            onChangeText={text => {
+              setEmail(text);
+            }}
           />
         </View>
       </View>
       <View style={styles.inputGroup}>
-        <Text style={styles.inputTitle}>Password</Text>
+        <Text
+          style={[
+            styles.inputTitle,
+            {color: errors.password ? '#c14646' : 'white'},
+          ]}>
+          {errors.password ? '* ' + errors.password : 'Password'}
+        </Text>
         <View style={styles.input}>
           <Lock width={20} color={'#898f99'} style={{marginHorizontal: 2}} />
           <TextInput
             style={styles.textInput}
             placeholder="Create a password"
             placeholderTextColor={'#898f99'}
+            value={password}
+            onChangeText={text => {
+              setPassword(text);
+            }}
           />
         </View>
       </View>
-      <TouchableNativeFeedback>
-        <View style={styles.submitButton}>
+      <TouchableNativeFeedback disabled={isConnecting} onPress={submitRegister}>
+        <View
+          style={[
+            styles.submitButton,
+            {backgroundColor: isConnecting ? '#c96444' : '#c96442'},
+          ]}>
           <Text style={{color: 'white', fontSize: 17, letterSpacing: 0.6}}>
-            Register
+            {isConnecting ? 'Connecting... ' : 'Register'}
           </Text>
         </View>
       </TouchableNativeFeedback>
@@ -152,6 +225,19 @@ const styles = StyleSheet.create({
     height: 50,
     backgroundColor: '#c96442',
     borderRadius: 30,
-    marginTop: 30,
+    marginTop: 10,
+  },
+  errorContainer: {
+    borderWidth: 1,
+    borderColor: '#c14646',
+    width: '80%',
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  errorMessage: {
+    color: '#c14646',
   },
 });

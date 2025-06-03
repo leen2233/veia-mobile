@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReconnectingWebSocket from 'react-native-reconnecting-websocket';
 
 class WebSocketService {
@@ -16,11 +17,17 @@ class WebSocketService {
       minReconnectionDelay: 1000 + Math.random() * 4000,
     };
 
-    this.socket = new ReconnectingWebSocket('', [], options);
+    this.socket = new ReconnectingWebSocket(
+      'wss://veia-api.leen2233.me/',
+      [],
+      options,
+    );
 
-    this.socket.addEventListener('message', event => {
-      this.listeners.forEach(cb => cb(event.data));
-    });
+    this.socket.onmessage = event => {
+      data = JSON.parse(event.data);
+      console.log('[RECV]', data);
+      this.listeners.forEach(cb => cb(data));
+    };
 
     this.socket.addEventListener('open', () => {
       console.log('WebSocket connected');
@@ -39,7 +46,10 @@ class WebSocketService {
 
   send(data) {
     if (this.socket && this.socket.readyState === 1) {
+      console.log('[SEND]', data);
       this.socket.send(JSON.stringify(data));
+    } else {
+      console.log('Socket not ready');
     }
   }
 

@@ -38,7 +38,6 @@ function RootStack() {
 
   useEffect(() => {
     WebsocketService.setStatusCallback(status => {
-      console.log('dispatch called', status);
       dispatch(setIsConnecting(status));
     });
 
@@ -95,7 +94,7 @@ function RootStack() {
         overlayColor: 'rgba(0, 0, 0, 0.5)',
         detachPreviousScreen: false,
       }}
-      initialRouteName="Login">
+      initialRouteName="Home">
       <Stack.Screen
         name="Login"
         component={LoginPage}
