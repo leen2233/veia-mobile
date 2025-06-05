@@ -70,44 +70,6 @@ const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
     return () => clearTimeout(timer);
   }, [isConnecting]);
 
-  useEffect(() => {
-    const checkAuthentication = async () => {
-      const accessToken = await AsyncStorage.getItem('accessToken');
-      if (!accessToken) {
-        navigation.navigate('Login');
-      } else {
-        WebsocketService.addListener(handleResponse);
-        data = {action: 'authenticate', data: {access_token: accessToken}};
-        WebsocketService.send(data);
-      }
-    };
-
-    checkAuthentication();
-  }, []);
-
-  const handleResponse = async data => {
-    if (data.action == 'authenticate') {
-      if (!data.success) {
-        const refreshToken = await AsyncStorage.getItem('refreshToken');
-        data = {
-          action: 'refresh_access_token',
-          data: {refresh_token: refreshToken},
-        };
-        WebsocketService.send(data);
-      }
-    } else if (data.action == 'refresh_access_token') {
-      if (data.success) {
-        const accessToken = data.data.access_token;
-        data = {action: 'authenticate', data: {access_token: accessToken}};
-        await AsyncStorage.setItem('accessToken', accessToken);
-      } else {
-        AsyncStorage.removeItem('accessToken');
-        AsyncStorage.removeItem('refreshToken');
-        navigation.navigate('Login');
-      }
-    }
-  };
-
   // Search animation effect
   useEffect(() => {
     if (isSearchOpen) {
@@ -272,12 +234,14 @@ const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
 function HomeScreen({navigation}) {
   const [chats, setChats] = useState([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const isConnecting = useSelector(state => state.isConnecting.state);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const translateYAnim = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('up');
   const insets = useSafeAreaInsets();
   const progress = useDrawerProgress();
+  const loadedChats = useRef([]);
 
   const animatedStyle = useAnimatedStyle(() => {
     const scale = interpolate(progress.value, [0, 1], [1, 0.99]);
@@ -286,6 +250,54 @@ function HomeScreen({navigation}) {
       transform: [{scale}, {translateX}],
     };
   });
+
+  useEffect(() => {
+    if (!isConnecting) {
+      const checkAuthentication = async () => {
+        const accessToken = await AsyncStorage.getItem('accessToken');
+        if (!accessToken) {
+          navigation.navigate('Login');
+        } else {
+          WebsocketService.addListener(handleResponse);
+          data = {action: 'authenticate', data: {access_token: accessToken}};
+          WebsocketService.send(data);
+        }
+      };
+
+      checkAuthentication();
+    }
+  }, [isConnecting]);
+
+  const handleResponse = async data => {
+    if (data.action == 'authenticate') {
+      if (!data.success) {
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
+        data = {
+          action: 'refresh_access_token',
+          data: {refresh_token: refreshToken},
+        };
+        WebsocketService.send(data);
+      } else {
+        console.log('authenticated');
+        let data = {action: 'get_chats'};
+        WebsocketService.send(data);
+      }
+    } else if (data.action == 'refresh_access_token') {
+      if (data.success) {
+        const accessToken = data.data.access_token;
+        data = {action: 'authenticate', data: {access_token: accessToken}};
+        await AsyncStorage.setItem('accessToken', accessToken);
+        WebsocketService.send(data);
+      } else {
+        AsyncStorage.removeItem('accessToken');
+        AsyncStorage.removeItem('refreshToken');
+        navigation.navigate('Login');
+      }
+    } else if (data.action == 'get_chats') {
+      setChats(data.data.results);
+      loadedChats.current = data.data.results;
+    }
+  };
 
   function formatTimestamp(timestamp) {
     const date =
@@ -355,18 +367,14 @@ function HomeScreen({navigation}) {
   };
 
   useEffect(() => {
-    const fetchChats = async () => {
-      setChats(smapleChatsData);
-    };
-
-    fetchChats();
-  }, []);
+    console.log('chats', chats);
+  }, [chats]);
 
   useEffect(() => {
     if (isSearchOpen) {
       setChats([]);
     } else {
-      setChats(smapleChatsData);
+      setChats(loadedChats.current);
     }
   }, [isSearchOpen]);
 
@@ -392,37 +400,38 @@ function HomeScreen({navigation}) {
         style={[styles.chatItemsContainer, {marginTop: insets.top + 60}]}
         onScroll={handleScroll}
         scrollEventThrottle={16}>
-        {chats.map(chat => (
-          <TouchableNativeFeedback
-            key={chat.id}
-            onPress={() => navigation.navigate('Chat')}>
-            <View style={styles.chatItem}>
-              <View
-                style={{flexDirection: 'row', gap: 20, alignItems: 'center'}}>
-                <Avatar url={chat.avatar} width={50} />
-                <View style={{justifyContent: 'center', gap: 5}}>
-                  <Text style={{color: 'white', fontSize: 18}}>
-                    {chat.name}
+        {chats.length > 0 &&
+          chats.map(chat => (
+            <TouchableNativeFeedback
+              key={chat.id}
+              onPress={() => navigation.navigate('Chat', {chat: chat})}>
+              <View style={styles.chatItem}>
+                <View
+                  style={{flexDirection: 'row', gap: 20, alignItems: 'center'}}>
+                  <Avatar url={chat.avatar} width={50} />
+                  <View style={{justifyContent: 'center', gap: 5}}>
+                    <Text style={{color: 'white', fontSize: 18}}>
+                      {chat.user.username}
+                    </Text>
+                    <Text style={{color: '#ababab'}}>{chat.user.username}</Text>
+                  </View>
+                </View>
+                <View style={{alignItems: 'center', gap: 8}}>
+                  <Text style={{color: '#ababab'}}>
+                    {formatTimestamp(chat.updated_at)}
                   </Text>
-                  <Text style={{color: '#ababab'}}>{chat.last_message}</Text>
+                  {chat.unread_count && (
+                    <Text style={styles.unreadBadge}>{chat.unread_count}</Text>
+                  )}
+                  {chat.read && (
+                    <Text style={styles.read}>
+                      <CheckCheck color={'#c96442'} size={18} />
+                    </Text>
+                  )}
                 </View>
               </View>
-              <View style={{alignItems: 'center', gap: 8}}>
-                <Text style={{color: '#ababab'}}>
-                  {formatTimestamp(chat.last_message_timestamp)}
-                </Text>
-                {chat.unread_count && (
-                  <Text style={styles.unreadBadge}>{chat.unread_count}</Text>
-                )}
-                {chat.read && (
-                  <Text style={styles.read}>
-                    <CheckCheck color={'#c96442'} size={18} />
-                  </Text>
-                )}
-              </View>
-            </View>
-          </TouchableNativeFeedback>
-        ))}
+            </TouchableNativeFeedback>
+          ))}
       </ScrollView>
       <Animated.View
         style={[

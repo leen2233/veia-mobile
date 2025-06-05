@@ -34,7 +34,7 @@ import {StyleSheet} from 'react-native';
 
 const {height: screenHeight} = Dimensions.get('window');
 
-const Header = ({top, navigation}) => {
+const Header = ({top, navigation, chat}) => {
   const height = useSharedValue(top + 80);
 
   const headerStyle = useAnimatedStyle(() => {
@@ -149,7 +149,9 @@ const Header = ({top, navigation}) => {
               </Animated.View>
 
               <View style={styles.userDetails}>
-                <Text style={styles.userName}>Sarah Johnson</Text>
+                <Text style={styles.userName}>
+                  {chat && chat.user.username}
+                </Text>
                 <Text style={{color: '#c96442'}}>online</Text>
               </View>
             </Animated.View>

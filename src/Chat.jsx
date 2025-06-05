@@ -31,9 +31,11 @@ import {useEffect, useRef, useState} from 'react';
 import Message from './components/message';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Header from './components/chatHeader';
+import WebsocketService from './lib/WebsocketService';
 
-const Chat = ({navigation}) => {
-  const [data, setData] = useState([]);
+const Chat = ({route, navigation}) => {
+  const [messages, setMessages] = useState([]);
+  const [chat, setChat] = useState(route.params.chat);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [replyingTo, setReplyingTo] = useState('');
@@ -44,89 +46,32 @@ const Chat = ({navigation}) => {
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    setData([
-      {text: 'Hey!', sender: 'me', timestamp: '2023-10-01T12:00:00Z'},
-      {text: 'Hello!', sender: 'other', timestamp: '2023-10-01T12:01:00Z'},
-      {text: 'How are you?', sender: 'me', timestamp: '2023-10-01T12:02:00Z'},
-      {
-        text: 'I am fine, thanks!',
-        sender: 'other',
-        timestamp: '2023-10-01T12:03:00Z',
-      },
-      {
-        text: 'What are your plans for today?',
-        sender: 'other',
-        timestamp: '2023-10-01T12:04:00Z',
-      },
-      {
-        text: 'I have a meeting at 2pm',
-        sender: 'me',
-        timestamp: '2023-10-01T12:05:00Z',
-      },
-      {
-        text: 'Good luck with that!',
-        sender: 'other',
-        timestamp: '2023-10-01T12:06:00Z',
-      },
-      {text: 'Thanks!', sender: 'me', timestamp: '2023-10-01T12:07:00Z'},
-      {
-        text: 'Should we meet for coffee after?',
-        sender: 'other',
-        timestamp: '2023-10-01T12:08:00Z',
-      },
-      {
-        text: 'Sure, sounds great!',
-        sender: 'me',
-        timestamp: '2023-10-01T12:09:00Z',
-      },
-      {text: 'Hey!', sender: 'me', timestamp: '2023-10-01T12:00:00Z'},
-      {text: 'Hello!', sender: 'other', timestamp: '2023-10-01T12:01:00Z'},
-      {text: 'How are you?', sender: 'me', timestamp: '2023-10-01T12:02:00Z'},
-      {
-        text: 'I am fine, thanks!',
-        sender: 'other',
-        timestamp: '2023-10-01T12:03:00Z',
-      },
-      {
-        text: 'What are your plans for today?',
-        sender: 'other',
-        timestamp: '2023-10-01T12:04:00Z',
-      },
-      {
-        text: 'I have a meeting at 2pm',
-        sender: 'me',
-        timestamp: '2023-10-01T12:05:00Z',
-        status: 'read',
-      },
-      {
-        text: 'Good luck with that!',
-        sender: 'other',
-        timestamp: '2023-10-01T12:06:00Z',
-      },
-      {
-        text: 'Thanks!',
-        sender: 'me',
-        timestamp: '2023-10-01T12:07:00Z',
-        status: 'read',
-      },
-      {
-        text: 'Should we meet for coffee after?',
-        sender: 'other',
-        timestamp: '2023-10-01T12:08:00Z',
-      },
-      {
-        text: 'Sure, sounds great! Sure, sounds great Sure, sounds great! Sure, sounds great Sure, sounds great! Sure, sounds great Sure, sounds great! Sure, sounds great ',
-        sender: 'me',
-        timestamp: '2023-10-01T12:09:00Z',
-        status: 'sent',
-      },
-    ]);
-  }, []);
+    if (chat) {
+      WebsocketService.addListener(handleResponse);
+      let data = {action: 'get_messages', data: {chat_id: chat.id}};
+      WebsocketService.send(data);
+    }
+  }, [chat]);
+
+  const handleResponse = data => {
+    if (data.action == 'get_messages') {
+      setMessages(data.data.results);
+    } else if (data.action == 'new_message') {
+      console.log(data.data.message, 'message');
+      setMessages(messages => [...messages, data.data.message]);
+      if (scrollRef.current) {
+        scrollRef.current.scrollToEnd({animated: true});
+      }
+    }
+  };
 
   const sendMessage = () => {
-    setData([...data, {text: inputValue, sender: 'me', timestamp: new Date()}]);
+    let data = {
+      action: 'new_message',
+      data: {chat_id: chat.id, text: inputValue},
+    };
+    WebsocketService.send(data);
     setInputValue('');
-    scrollRef.current.scrollToEnd({animated: true});
   };
 
   useEffect(() => {
@@ -152,7 +97,7 @@ const Chat = ({navigation}) => {
     if (scrollRef.current) {
       scrollRef.current.scrollToEnd({animated: false});
     }
-  });
+  }, []);
 
   useEffect(() => {
     showSend.value = inputValue.length > 0;
@@ -196,16 +141,16 @@ const Chat = ({navigation}) => {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={isKeyboardVisible ? 0 : -50}>
-        <Header top={insets.top} navigation={navigation} />
+        <Header top={insets.top} navigation={navigation} chat={chat} />
         <ScrollView
           style={styles.chatContainer}
           ref={scrollRef}
           contentContainerStyle={{
             flexGrow: 1,
             justifyContent: 'flex-end',
-            paddingBottom: 100,
+            paddingBottom: isKeyboardVisible ? 100 : 100,
           }}>
-          {data.map((message, index) => (
+          {messages.map((message, index) => (
             <Message
               key={index}
               message={message}

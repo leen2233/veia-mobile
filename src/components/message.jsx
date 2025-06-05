@@ -19,8 +19,7 @@ import {
 } from 'react-native-gesture-handler';
 
 const Message = ({message, onReply}) => {
-  const isMe = message.sender === 'me';
-  const messageStyle = isMe ? styles.myMessage : styles.otherMessage;
+  const messageStyle = message.is_mine ? styles.myMessage : styles.otherMessage;
   const offset = useSharedValue(0);
 
   const pan = Gesture.Pan()
@@ -77,7 +76,7 @@ const Message = ({message, onReply}) => {
     };
   });
 
-  const formattedTime = formatTimestamp(message.timestamp);
+  const formattedTime = formatTimestamp(message.time);
 
   return (
     <GestureDetector gesture={pan}>
@@ -107,17 +106,18 @@ const Message = ({message, onReply}) => {
                   }}>
                   {formattedTime}
                 </Text>
-                {message.status === 'sent' ? (
-                  <Check size={18} color={'white'} />
-                ) : (
-                  message.status === 'read' && (
-                    <CheckCheck
-                      size={18}
-                      color={'white'}
-                      style={{backgroundColor: 'transparent'}}
-                    />
-                  )
-                )}
+                {message.is_mine &&
+                  (message.status === 'sent' ? (
+                    <Check size={18} color={'white'} />
+                  ) : (
+                    message.status === 'read' && (
+                      <CheckCheck
+                        size={18}
+                        color={'white'}
+                        style={{backgroundColor: 'transparent'}}
+                      />
+                    )
+                  ))}
               </View>
             </View>
           </View>
