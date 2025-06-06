@@ -32,36 +32,41 @@ import Message from './components/message';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Header from './components/chatHeader';
 import WebsocketService from './lib/WebsocketService';
+import {useDispatch, useSelector} from 'react-redux';
+import {setMessages} from './state/actions';
 
 const Chat = ({route, navigation}) => {
-  const [messages, setMessages] = useState([]);
-  const [chat, setChat] = useState(route.params.chat);
+  const chat = useSelector(state =>
+    state.chats.data.find(c => c.id === route.params.chat.id),
+  );
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [replyingTo, setReplyingTo] = useState('');
   const scrollRef = useRef(null);
   const showSend = useSharedValue(inputValue.length > 0);
   const replyBarHeight = useSharedValue(0);
+  const dispatch = useDispatch();
 
   const insets = useSafeAreaInsets();
 
+  const messages = chat?.messages || [];
+
   useEffect(() => {
-    if (chat) {
+    if (chat && !chat.messages) {
       WebsocketService.addListener(handleResponse);
       let data = {action: 'get_messages', data: {chat_id: chat.id}};
       WebsocketService.send(data);
     }
-  }, [chat]);
+  }, []);
+
+  useEffect(() => {
+    scrollRef.current.scrollToEnd({animated: true});
+  }, [chat.messages]);
 
   const handleResponse = data => {
     if (data.action == 'get_messages') {
-      setMessages(data.data.results);
-    } else if (data.action == 'new_message') {
-      console.log(data.data.message, 'message');
-      setMessages(messages => [...messages, data.data.message]);
-      if (scrollRef.current) {
-        scrollRef.current.scrollToEnd({animated: true});
-      }
+      // setMessages(data.data.results);
+      dispatch(setMessages(data.data.results, chat.id));
     }
   };
 

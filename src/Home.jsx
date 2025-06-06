@@ -30,19 +30,15 @@ import Reanimated, {
 import {useDrawerProgress} from '@react-navigation/drawer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import smapleChatsData from '../data';
-import {useSelector} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
 import WebsocketService from './lib/WebsocketService';
+import {setChats, setConnectionStatus} from './state/actions';
 
 const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
-  const isConnecting = useSelector(state => state.isConnecting.state);
+  const connectionStatus = useSelector(state => state.connectionStatus.state);
   const [dotCount, setDotCount] = useState(1);
   const [searchText, setSearchText] = useState('');
   const searchInputRef = useRef();
-
-  useEffect(() => {
-    console.log('isConnecting', isConnecting);
-  }, [isConnecting]);
 
   // Animation values
   const bounceValue = useSharedValue(0);
@@ -52,13 +48,13 @@ const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
   const headerContentOpacity = useSharedValue(1);
 
   useEffect(() => {
-    if (isConnecting) {
+    if (connectionStatus) {
       const dotInterval = setInterval(() => {
         setDotCount(prev => (prev % 3) + 1);
       }, 500);
       return () => clearInterval(dotInterval);
     }
-  }, [isConnecting]);
+  }, [connectionStatus]);
 
   useEffect(() => {
     fadeValue.value = withTiming(0, {duration: 200});
@@ -68,7 +64,7 @@ const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
       scaleValue.value = withSpring(1, {damping: 10, stiffness: 150});
     }, 200);
     return () => clearTimeout(timer);
-  }, [isConnecting]);
+  }, [connectionStatus]);
 
   // Search animation effect
   useEffect(() => {
@@ -131,10 +127,15 @@ const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
   };
 
   const handleSearchSubmit = () => {
-    // Handle search logic here
-    console.log('Search:', searchText);
-    // You can add your search functionality here
+    data = {action: 'search_users', data: {q: searchText}};
+    WebsocketService.send(data);
   };
+
+  useEffect(() => {
+    if (isSearchOpen) {
+      handleSearchSubmit();
+    }
+  }, [searchText]);
 
   const getDots = () => {
     return '.'.repeat(dotCount);
@@ -173,7 +174,7 @@ const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
             },
             animatedTextStyle,
           ]}>
-          {isConnecting ? `Connecting${getDots()}` : 'Veia'}
+          {connectionStatus ? `Connecting${getDots()}` : 'Veia'}
         </Reanimated.Text>
 
         <TouchableOpacity onPress={handleSearchOpen}>
@@ -218,7 +219,7 @@ const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
             borderColor: 'rgba(255, 255, 255, 0.3)',
             alignItems: 'center',
           }}
-          placeholder="Search..."
+          placeholder="Search users..."
           placeholderTextColor="rgba(255, 255, 255, 0.7)"
           value={searchText}
           onChangeText={setSearchText}
@@ -232,16 +233,17 @@ const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
 };
 
 function HomeScreen({navigation}) {
-  const [chats, setChats] = useState([]);
+  const chats = useSelector(state => state.chats.data);
+  const [searchResults, setSearchResults] = useState([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const isConnecting = useSelector(state => state.isConnecting.state);
+  const connectionStatus = useSelector(state => state.connectionStatus);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const translateYAnim = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef('up');
   const insets = useSafeAreaInsets();
   const progress = useDrawerProgress();
-  const loadedChats = useRef([]);
+  const dispatch = useDispatch();
 
   const animatedStyle = useAnimatedStyle(() => {
     const scale = interpolate(progress.value, [0, 1], [1, 0.99]);
@@ -252,7 +254,7 @@ function HomeScreen({navigation}) {
   });
 
   useEffect(() => {
-    if (!isConnecting) {
+    if (!connectionStatus.state && !connectionStatus.isAuthenticated) {
       const checkAuthentication = async () => {
         const accessToken = await AsyncStorage.getItem('accessToken');
         if (!accessToken) {
@@ -266,7 +268,7 @@ function HomeScreen({navigation}) {
 
       checkAuthentication();
     }
-  }, [isConnecting]);
+  }, [connectionStatus]);
 
   const handleResponse = async data => {
     if (data.action == 'authenticate') {
@@ -279,6 +281,7 @@ function HomeScreen({navigation}) {
         WebsocketService.send(data);
       } else {
         console.log('authenticated');
+        dispatch(setConnectionStatus({isAuthenticated: true}));
         let data = {action: 'get_chats'};
         WebsocketService.send(data);
       }
@@ -294,8 +297,9 @@ function HomeScreen({navigation}) {
         navigation.navigate('Login');
       }
     } else if (data.action == 'get_chats') {
-      setChats(data.data.results);
-      loadedChats.current = data.data.results;
+      dispatch(setChats(data.data.results));
+    } else if (data.action == 'search_users') {
+      setSearchResults(data.data.results);
     }
   };
 
@@ -370,13 +374,13 @@ function HomeScreen({navigation}) {
     console.log('chats', chats);
   }, [chats]);
 
-  useEffect(() => {
-    if (isSearchOpen) {
-      setChats([]);
-    } else {
-      setChats(loadedChats.current);
-    }
-  }, [isSearchOpen]);
+  // useEffect(() => {
+  //   if (isSearchOpen) {
+  //     setChats([]);
+  //   } else {
+  //     setChats(loadedChats.current);
+  //   }
+  // }, [isSearchOpen]);
 
   return (
     <Reanimated.View
@@ -396,43 +400,87 @@ function HomeScreen({navigation}) {
         isSearchOpen={isSearchOpen}
         setIsSearchOpen={setIsSearchOpen}
       />
-      <ScrollView
-        style={[styles.chatItemsContainer, {marginTop: insets.top + 60}]}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}>
-        {chats.length > 0 &&
-          chats.map(chat => (
-            <TouchableNativeFeedback
-              key={chat.id}
-              onPress={() => navigation.navigate('Chat', {chat: chat})}>
-              <View style={styles.chatItem}>
-                <View
-                  style={{flexDirection: 'row', gap: 20, alignItems: 'center'}}>
-                  <Avatar url={chat.avatar} width={50} />
-                  <View style={{justifyContent: 'center', gap: 5}}>
-                    <Text style={{color: 'white', fontSize: 18}}>
-                      {chat.user.username}
-                    </Text>
-                    <Text style={{color: '#ababab'}}>{chat.user.username}</Text>
+      {isSearchOpen ? (
+        <ScrollView
+          style={[styles.chatItemsContainer, {marginTop: insets.top + 60}]}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}>
+          <View style={styles.resultCountView}>
+            <Text style={{color: '#ababab'}}>Search results:</Text>
+            <Text style={{color: '#ababab'}}>{searchResults.length} users</Text>
+          </View>
+          {searchResults.length > 0 &&
+            searchResults.map(user => (
+              <TouchableNativeFeedback
+                key={user.id}
+                onPress={() => navigation.navigate('Chat', {chat: chat})}>
+                <View style={styles.chatItem}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      gap: 20,
+                      alignItems: 'center',
+                    }}>
+                    <Avatar url={user.avatar} width={50} />
+                    <View style={{justifyContent: 'center', gap: 5}}>
+                      <Text style={{color: 'white', fontSize: 18}}>
+                        {user.username}
+                      </Text>
+                      <Text style={{color: '#ababab'}}>{user.email}</Text>
+                    </View>
                   </View>
                 </View>
-                <View style={{alignItems: 'center', gap: 8}}>
-                  <Text style={{color: '#ababab'}}>
-                    {formatTimestamp(chat.updated_at)}
-                  </Text>
-                  {chat.unread_count && (
-                    <Text style={styles.unreadBadge}>{chat.unread_count}</Text>
-                  )}
-                  {chat.read && (
-                    <Text style={styles.read}>
-                      <CheckCheck color={'#c96442'} size={18} />
+              </TouchableNativeFeedback>
+            ))}
+        </ScrollView>
+      ) : (
+        <ScrollView
+          style={[styles.chatItemsContainer, {marginTop: insets.top + 60}]}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}>
+          {chats.length > 0 &&
+            chats.map(chat => (
+              <TouchableNativeFeedback
+                key={chat.id}
+                onPress={() => navigation.navigate('Chat', {chat: chat})}>
+                <View style={styles.chatItem}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      gap: 20,
+                      alignItems: 'center',
+                    }}>
+                    <Avatar url={chat.avatar} width={50} />
+                    <View style={{justifyContent: 'center', gap: 5}}>
+                      <Text style={{color: 'white', fontSize: 18}}>
+                        {chat.user.username}
+                      </Text>
+                      <Text style={{color: '#ababab'}}>
+                        {chat.messages &&
+                          chat.messages[chat.messages.length - 1].text}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{alignItems: 'center', gap: 8}}>
+                    <Text style={{color: '#ababab'}}>
+                      {formatTimestamp(chat.updated_at)}
                     </Text>
-                  )}
+                    {chat.unread_count && (
+                      <Text style={styles.unreadBadge}>
+                        {chat.unread_count}
+                      </Text>
+                    )}
+                    {chat.read && (
+                      <Text style={styles.read}>
+                        <CheckCheck color={'#c96442'} size={18} />
+                      </Text>
+                    )}
+                  </View>
                 </View>
-              </View>
-            </TouchableNativeFeedback>
-          ))}
-      </ScrollView>
+              </TouchableNativeFeedback>
+            ))}
+        </ScrollView>
+      )}
       <Animated.View
         style={[
           styles.floatingButton,
@@ -507,5 +555,17 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  resultCountView: {
+    height: 40,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: '#202324',
+    borderBottomColor: '#4A4F4B',
+    borderBottomWidth: 1,
+    borderTopColor: '#4A4F4B',
+    borderTopWidth: 1,
   },
 });

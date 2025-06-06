@@ -10,7 +10,7 @@ import {createDrawerNavigator} from '@react-navigation/drawer';
 import WebsocketService from './src/lib/WebsocketService';
 import {Provider, useDispatch} from 'react-redux';
 import store from './src/state/store';
-import {setIsConnecting} from './src/state/actions';
+import {addMessageToChat, setConnectionStatus} from './src/state/actions';
 import LoginPage from './src/Login';
 import RegisterPage from './src/Register';
 
@@ -36,10 +36,17 @@ function HomeDrawer() {
 function RootStack() {
   const dispatch = useDispatch();
 
+  const handleResponse = data => {
+    if (data.action == 'new_message') {
+      dispatch(addMessageToChat(data.data.message, data.data.chat.id));
+    }
+  };
+
   useEffect(() => {
     WebsocketService.setStatusCallback(status => {
-      dispatch(setIsConnecting(status));
+      dispatch(setConnectionStatus(status));
     });
+    WebsocketService.addListener(handleResponse);
 
     WebsocketService.connect();
   }, []);

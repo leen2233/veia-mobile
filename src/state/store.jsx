@@ -1,8 +1,9 @@
 import {createStore, combineReducers} from 'redux';
-import {isConnectingReducer} from './reducers';
+import {chatsReducer, connectionStatusReducer} from './reducers';
 
 const rootReducer = combineReducers({
-  isConnecting: isConnectingReducer,
+  connectionStatus: connectionStatusReducer,
+  chats: chatsReducer,
 });
 
 const store = createStore(rootReducer);
