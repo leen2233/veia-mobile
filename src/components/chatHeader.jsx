@@ -117,7 +117,7 @@ const Header = ({top, navigation, chat}) => {
     if (isExpanded) {
       togglePanel();
     } else {
-      navigation.navigate('Home');
+      navigation.goBack();
     }
   };
 

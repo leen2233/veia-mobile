@@ -17,6 +17,12 @@ export const chatsReducer = (state = chats, action) => {
   switch (action.type) {
     case 'SET_CHATS':
       return {data: action.payload};
+    case 'ADD_CHAT':
+      return {
+        data: state.data.some(chat => chat.id === action.payload.id)
+          ? state.data
+          : [...state.data, action.payload],
+      };
     case 'SET_CHAT_MESSAGES':
       return {
         data: state.data.map(chat =>

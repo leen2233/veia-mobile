@@ -33,12 +33,11 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Header from './components/chatHeader';
 import WebsocketService from './lib/WebsocketService';
 import {useDispatch, useSelector} from 'react-redux';
-import {setMessages} from './state/actions';
+import {addChat, addMessageToChat, setMessages} from './state/actions';
 
 const Chat = ({route, navigation}) => {
-  const chat = useSelector(state =>
-    state.chats.data.find(c => c.id === route.params.chat.id),
-  );
+  const chats = useSelector(state => state.chats);
+  const [chat, setChat] = useState(null); // useSelector(state => state.chats.,);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [replyingTo, setReplyingTo] = useState('');
@@ -46,27 +45,48 @@ const Chat = ({route, navigation}) => {
   const showSend = useSharedValue(inputValue.length > 0);
   const replyBarHeight = useSharedValue(0);
   const dispatch = useDispatch();
-
   const insets = useSafeAreaInsets();
 
+  const chatId = useRef(route.params.chat?.id);
   const messages = chat?.messages || [];
 
   useEffect(() => {
-    if (chat && !chat.messages) {
-      WebsocketService.addListener(handleResponse);
-      let data = {action: 'get_messages', data: {chat_id: chat.id}};
-      WebsocketService.send(data);
-    }
+    WebsocketService.addListener(handleResponse);
+    return () => {
+      WebsocketService.removeListener(handleResponse);
+    };
   }, []);
 
   useEffect(() => {
+    console.log(chat, route.params.user);
+    if (chat && !chat.messages) {
+      let data = {action: 'get_messages', data: {chat_id: chat.id}};
+      WebsocketService.send(data);
+    } else if (route.params.user) {
+      data = {action: 'get_messages', data: {user_id: route.params.user.id}};
+      WebsocketService.send(data);
+    }
+  }, [chat, route.params.user]);
+
+  useEffect(() => {
+    console.log(chats.data);
+    if (chats.data.find(c => c.id === chatId.current) != chat) {
+      setChat(chats.data.find(c => c.id === chatId.current));
+    }
+  }, [chats]);
+
+  useEffect(() => {
     scrollRef.current.scrollToEnd({animated: true});
-  }, [chat.messages]);
+  }, [chat?.messages]);
 
   const handleResponse = data => {
     if (data.action == 'get_messages') {
-      // setMessages(data.data.results);
-      dispatch(setMessages(data.data.results, chat.id));
+      if (!chat) {
+        dispatch(addChat(data.data.chat));
+      }
+      chatId.current = data.data.chat.id;
+      console.log('chat id', chatId.current);
+      dispatch(setMessages(data.data.results, chatId.current));
     }
   };
 

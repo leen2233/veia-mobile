@@ -12,6 +12,13 @@ export const setChats = state => {
   };
 };
 
+export const addChat = state => {
+  return {
+    type: 'ADD_CHAT',
+    payload: state,
+  };
+};
+
 export const setMessages = (state, chatId) => {
   return {
     type: 'SET_CHAT_MESSAGES',

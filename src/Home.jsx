@@ -254,13 +254,16 @@ function HomeScreen({navigation}) {
   });
 
   useEffect(() => {
+    WebsocketService.addListener(handleResponse);
+  }, []);
+
+  useEffect(() => {
     if (!connectionStatus.state && !connectionStatus.isAuthenticated) {
       const checkAuthentication = async () => {
         const accessToken = await AsyncStorage.getItem('accessToken');
         if (!accessToken) {
           navigation.navigate('Login');
         } else {
-          WebsocketService.addListener(handleResponse);
           data = {action: 'authenticate', data: {access_token: accessToken}};
           WebsocketService.send(data);
         }
@@ -299,6 +302,7 @@ function HomeScreen({navigation}) {
     } else if (data.action == 'get_chats') {
       dispatch(setChats(data.data.results));
     } else if (data.action == 'search_users') {
+      console.log(data.data.results, 'results');
       setSearchResults(data.data.results);
     }
   };
@@ -370,18 +374,6 @@ function HomeScreen({navigation}) {
     lastScrollY.current = currentScrollY;
   };
 
-  useEffect(() => {
-    console.log('chats', chats);
-  }, [chats]);
-
-  // useEffect(() => {
-  //   if (isSearchOpen) {
-  //     setChats([]);
-  //   } else {
-  //     setChats(loadedChats.current);
-  //   }
-  // }, [isSearchOpen]);
-
   return (
     <Reanimated.View
       style={[
@@ -407,13 +399,17 @@ function HomeScreen({navigation}) {
           scrollEventThrottle={16}>
           <View style={styles.resultCountView}>
             <Text style={{color: '#ababab'}}>Search results:</Text>
-            <Text style={{color: '#ababab'}}>{searchResults.length} users</Text>
+            {searchResults && (
+              <Text style={{color: '#ababab'}}>
+                {searchResults.length} users
+              </Text>
+            )}
           </View>
           {searchResults.length > 0 &&
             searchResults.map(user => (
               <TouchableNativeFeedback
                 key={user.id}
-                onPress={() => navigation.navigate('Chat', {chat: chat})}>
+                onPress={() => navigation.navigate('Chat', {user: user})}>
                 <View style={styles.chatItem}>
                   <View
                     style={{
@@ -457,6 +453,7 @@ function HomeScreen({navigation}) {
                       </Text>
                       <Text style={{color: '#ababab'}}>
                         {chat.messages &&
+                          chat.messages.length > 0 &&
                           chat.messages[chat.messages.length - 1].text}
                       </Text>
                     </View>
