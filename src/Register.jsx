@@ -13,10 +13,11 @@ import {
 
 import {useSelector} from 'react-redux';
 import WebsocketService from './lib/WebsocketService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const RegisterPage = ({navigation}) => {
   const [isKeyboardVisible, setIsKeyboardVisible] = useState();
-  const isConnecting = useSelector(state => state.isConnecting.state);
+  const isConnecting = useSelector(state => state.connectionStatus.state);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,11 +46,8 @@ const RegisterPage = ({navigation}) => {
   const handleResponse = data => {
     if (data.action == 'sign_up') {
       if (data.success) {
-        accessToken = data.data.access;
-        refreshToken = data.data.refresh;
-
-        AsyncStorage.setItem('accessToken', accessToken);
-        AsyncStorage.setItem('refreshToken', refreshToken);
+        AsyncStorage.setItem('accessToken', data.data.access);
+        AsyncStorage.setItem('refreshToken', data.data.refresh);
         WebsocketService.removeListener(handleResponse);
         navigation.navigate('Home');
       } else {
@@ -59,7 +57,7 @@ const RegisterPage = ({navigation}) => {
   };
 
   const submitRegister = () => {
-    data = {
+    let data = {
       action: 'sign_up',
       data: {username: username, password: password, email: email},
     };

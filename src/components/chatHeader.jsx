@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   Image,
   Dimensions,
+  BackHandler,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -31,6 +32,7 @@ import {
   Edit3,
 } from 'lucide-react-native';
 import {StyleSheet} from 'react-native';
+import Avatar from './avatar';
 
 const {height: screenHeight} = Dimensions.get('window');
 
@@ -47,7 +49,7 @@ const Header = ({top, navigation, chat}) => {
     const translateY = interpolate(
       height.value,
       [top + 80, screenHeight],
-      [-10, 70],
+      [0, 70],
     );
     const translateX = interpolate(
       height.value,
@@ -113,13 +115,22 @@ const Header = ({top, navigation, chat}) => {
 
   const backClicked = () => {
     const isExpanded = height.value > top + 80;
-    console.log(isExpanded);
     if (isExpanded) {
       togglePanel();
+      return true;
     } else {
-      navigation.goBack();
+      return false;
     }
   };
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backClicked,
+    );
+
+    return () => backHandler.remove();
+  }, []);
 
   return (
     <Animated.View style={[styles.header, headerStyle, {paddingTop: top}]}>
@@ -133,20 +144,13 @@ const Header = ({top, navigation, chat}) => {
           </TouchableNativeFeedback>
 
           <TouchableOpacity onPress={togglePanel} style={styles.userInfo}>
-            <Animated.View
-              style={[
-                styles.avatarContainer,
-                nameInfoStyle,
-                {paddingTop: top},
-              ]}>
-              <Animated.View style={avatarStyle}>
-                <Image
-                  source={{
-                    uri: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/58.jpg',
-                  }}
-                  style={styles.avatar}
-                />
-              </Animated.View>
+            <Animated.View style={[styles.avatarContainer, nameInfoStyle]}>
+              <Avatar
+                url={chat && chat.user.avatar}
+                name={chat && chat.user.username}
+                width={50}
+                style={avatarStyle}
+              />
 
               <View style={styles.userDetails}>
                 <Text style={styles.userName}>
@@ -169,23 +173,19 @@ const Header = ({top, navigation, chat}) => {
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.profileSection}>
             <View style={styles.profileImageContainer}>
-              <Image
-                source={{
-                  uri: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/58.jpg',
-                }}
-                style={styles.profileImage}
+              <Avatar
+                url={chat?.user?.avatar}
+                name={chat?.user?.username}
+                width={60}
               />
               <View>
-                <Text style={styles.profileName}>Sarah Johnson</Text>
-                <Text style={styles.profilePhone}>
-                  sarah.johnsson@gmail.com
-                </Text>
+                <Text style={styles.profileName}>{chat?.user?.username}</Text>
+                <Text style={styles.profilePhone}>{chat?.user?.email}</Text>
               </View>
             </View>
-            <Text style={styles.profileBio}>
-              Living life one coffee at a time ☕️ | Travel enthusiast 🌍 | Dog
-              lover 🐕
-            </Text>
+            {chat?.user?.bio && (
+              <Text style={styles.profileBio}>{chat.user.bio}</Text>
+            )}
           </View>
           <View style={styles.statsContainer}>
             {userStats.map((stat, index) => (
@@ -228,6 +228,8 @@ const styles = {
   header: {
     backgroundColor: '#202324',
     overflow: 'hidden',
+    borderColor: 'grey',
+    borderBottomWidth: 1,
   },
   topBar: {
     height: 80,
@@ -247,15 +249,15 @@ const styles = {
   },
   userInfo: {
     marginLeft: 8,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    flexDirection: 'row',
+    flex: 1,
   },
   avatarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    justifyContent: 'center',
   },
   onlineIndicator: {
     position: 'absolute',
@@ -298,12 +300,8 @@ const styles = {
     marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 15,
-  },
-  profileImage: {
-    width: 75,
-    height: 75,
-    borderRadius: 50,
   },
   profileName: {
     fontSize: 24,
@@ -314,7 +312,6 @@ const styles = {
   profilePhone: {
     fontSize: 16,
     color: '#ababab',
-    marginBottom: 12,
   },
   profileBio: {
     fontSize: 14,

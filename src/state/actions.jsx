@@ -34,3 +34,7 @@ export const addMessageToChat = (state, chatId) => {
     chatId: chatId,
   };
 };
+
+export const setUser = state => {
+  return {type: 'SET_USER', payload: state};
+};

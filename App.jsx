@@ -25,7 +25,7 @@ function HomeDrawer() {
         headerShown: false,
         drawerPosition: 'left',
         swipeEnabled: true,
-        swipeEdgeWidth: 200,
+        swipeEdgeWidth: 300,
         drawerStyle: {width: 270},
       }}>
       <Drawer.Screen name="HomeMain" component={HomeScreen} />
@@ -37,6 +37,7 @@ function RootStack() {
   const dispatch = useDispatch();
 
   const handleResponse = data => {
+    console.log('called');
     if (data.action == 'new_message') {
       dispatch(addMessageToChat(data.data.message, data.data.chat.id));
     }

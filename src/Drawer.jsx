@@ -14,27 +14,30 @@ import {
   UserRound,
   Users,
 } from 'lucide-react-native';
+import {useSelector} from 'react-redux';
+import {useEffect} from 'react';
 
 function DrawerContent({navigation}) {
+  const user = useSelector(state => state.user);
+
+  useEffect(() => {
+    console.log('user', user);
+  }, [user]);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Avatar
-          url={
-            'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/56.jpg'
-          }
-          width={60}
-        />
-        <View style={{height: 60, justifyContent: 'center'}}>
+        <Avatar url={user?.avatar} name={user?.username} width={60} />
+        <View style={{height: 60, justifyContent: 'center', gap: 6}}>
           <Text
             style={{
               color: 'white',
               fontSize: 20,
               fontWeight: 'bold',
             }}>
-            John Doe
+            {user?.username}
           </Text>
-          <Text style={{color: '#ababab'}}>+15598331751</Text>
+          <Text style={{color: '#ababab'}}>{user?.email}</Text>
         </View>
       </View>
       <TouchableNativeFeedback>

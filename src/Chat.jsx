@@ -58,7 +58,6 @@ const Chat = ({route, navigation}) => {
   }, []);
 
   useEffect(() => {
-    console.log(chat, route.params.user);
     if (chat && !chat.messages) {
       let data = {action: 'get_messages', data: {chat_id: chat.id}};
       WebsocketService.send(data);
@@ -69,7 +68,6 @@ const Chat = ({route, navigation}) => {
   }, [chat, route.params.user]);
 
   useEffect(() => {
-    console.log(chats.data);
     if (chats.data.find(c => c.id === chatId.current) != chat) {
       setChat(chats.data.find(c => c.id === chatId.current));
     }
@@ -85,7 +83,6 @@ const Chat = ({route, navigation}) => {
         dispatch(addChat(data.data.chat));
       }
       chatId.current = data.data.chat.id;
-      console.log('chat id', chatId.current);
       dispatch(setMessages(data.data.results, chatId.current));
     }
   };
@@ -173,7 +170,7 @@ const Chat = ({route, navigation}) => {
           contentContainerStyle={{
             flexGrow: 1,
             justifyContent: 'flex-end',
-            paddingBottom: isKeyboardVisible ? 100 : 100,
+            paddingBottom: 10,
           }}>
           {messages.map((message, index) => (
             <Message
@@ -247,7 +244,6 @@ const styles = StyleSheet.create({
   },
   chatContainer: {
     flex: 1,
-    paddingTop: 90,
     backgroundColor: '#141516',
   },
   inputContainer: {

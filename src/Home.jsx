@@ -15,6 +15,7 @@ import {
   TouchableNativeFeedback,
   TextInput,
   Keyboard,
+  BackHandler,
 } from 'react-native';
 import {ScrollView} from 'react-native-gesture-handler';
 import {format, isToday, differenceInMinutes, parseISO} from 'date-fns';
@@ -32,7 +33,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {useDispatch, useSelector} from 'react-redux';
 import WebsocketService from './lib/WebsocketService';
-import {setChats, setConnectionStatus} from './state/actions';
+import {setChats, setConnectionStatus, setUser} from './state/actions';
 
 const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
   const connectionStatus = useSelector(state => state.connectionStatus.state);
@@ -245,6 +246,8 @@ function HomeScreen({navigation}) {
   const progress = useDrawerProgress();
   const dispatch = useDispatch();
 
+  const handlerAdded = useRef(false);
+
   const animatedStyle = useAnimatedStyle(() => {
     const scale = interpolate(progress.value, [0, 1], [1, 0.99]);
     const translateX = interpolate(progress.value, [0, 1], [0, 30]);
@@ -253,8 +256,27 @@ function HomeScreen({navigation}) {
     };
   });
 
+  const backAction = () => {
+    if (isSearchOpen) {
+      setIsSearchOpen(false);
+      return true;
+    }
+    return false;
+  };
+
   useEffect(() => {
-    WebsocketService.addListener(handleResponse);
+    if (!handlerAdded.current) {
+      WebsocketService.addListener(handleResponse);
+      handlerAdded.current = true;
+      console.log('added');
+    }
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    return () => backHandler.remove();
   }, []);
 
   useEffect(() => {
@@ -264,6 +286,11 @@ function HomeScreen({navigation}) {
         if (!accessToken) {
           navigation.navigate('Login');
         } else {
+          if (!handlerAdded.current) {
+            WebsocketService.addListener(handleResponse);
+            handlerAdded.current = true;
+            console.log('added');
+          }
           data = {action: 'authenticate', data: {access_token: accessToken}};
           WebsocketService.send(data);
         }
@@ -274,26 +301,30 @@ function HomeScreen({navigation}) {
   }, [connectionStatus]);
 
   const handleResponse = async data => {
+    console.log('action.ty', data);
     if (data.action == 'authenticate') {
       if (!data.success) {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
-        data = {
+        let dataToSend = {
           action: 'refresh_access_token',
           data: {refresh_token: refreshToken},
         };
-        WebsocketService.send(data);
+        WebsocketService.send(dataToSend);
       } else {
-        console.log('authenticated');
         dispatch(setConnectionStatus({isAuthenticated: true}));
-        let data = {action: 'get_chats'};
-        WebsocketService.send(data);
+        dispatch(setUser(data.data.user));
+        let dataToSend = {action: 'get_chats'};
+        WebsocketService.send(dataToSend);
       }
     } else if (data.action == 'refresh_access_token') {
       if (data.success) {
         const accessToken = data.data.access_token;
-        data = {action: 'authenticate', data: {access_token: accessToken}};
+        dataToSend = {
+          action: 'authenticate',
+          data: {access_token: accessToken},
+        };
         await AsyncStorage.setItem('accessToken', accessToken);
-        WebsocketService.send(data);
+        WebsocketService.send(dataToSend);
       } else {
         AsyncStorage.removeItem('accessToken');
         AsyncStorage.removeItem('refreshToken');
@@ -302,16 +333,22 @@ function HomeScreen({navigation}) {
     } else if (data.action == 'get_chats') {
       dispatch(setChats(data.data.results));
     } else if (data.action == 'search_users') {
-      console.log(data.data.results, 'results');
       setSearchResults(data.data.results);
     }
   };
 
   function formatTimestamp(timestamp) {
+    console.log(timestamp, 'timestamp');
     const date =
-      typeof timestamp === 'string' ? parseISO(timestamp) : new Date(timestamp);
+      typeof timestamp === 'string'
+        ? parseISO(timestamp)
+        : new Date(timestamp < 1e12 ? timestamp * 1000 : timestamp);
     const now = new Date();
     const diffInMinutes = differenceInMinutes(now, date);
+
+    if (diffInMinutes === 0) {
+      return 'Just Now';
+    }
 
     if (diffInMinutes < 60) {
       return `${diffInMinutes} min ago`;
@@ -374,6 +411,8 @@ function HomeScreen({navigation}) {
     lastScrollY.current = currentScrollY;
   };
 
+  console.log(chats);
+
   return (
     <Reanimated.View
       style={[
@@ -417,7 +456,11 @@ function HomeScreen({navigation}) {
                       gap: 20,
                       alignItems: 'center',
                     }}>
-                    <Avatar url={user.avatar} width={50} />
+                    <Avatar
+                      url={user?.avatar}
+                      name={user.username}
+                      width={50}
+                    />
                     <View style={{justifyContent: 'center', gap: 5}}>
                       <Text style={{color: 'white', fontSize: 18}}>
                         {user.username}
@@ -446,15 +489,19 @@ function HomeScreen({navigation}) {
                       gap: 20,
                       alignItems: 'center',
                     }}>
-                    <Avatar url={chat.avatar} width={50} />
+                    <Avatar
+                      url={chat.user.avatar}
+                      name={chat.user.username}
+                      width={50}
+                    />
                     <View style={{justifyContent: 'center', gap: 5}}>
                       <Text style={{color: 'white', fontSize: 18}}>
                         {chat.user.username}
                       </Text>
                       <Text style={{color: '#ababab'}}>
-                        {chat.messages &&
-                          chat.messages.length > 0 &&
-                          chat.messages[chat.messages.length - 1].text}
+                        {chat.messages && chat.messages.length > 0
+                          ? chat.messages[chat.messages.length - 1].text
+                          : chat?.last_message}
                       </Text>
                     </View>
                   </View>

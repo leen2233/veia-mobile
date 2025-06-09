@@ -19,7 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginPage = ({navigation}) => {
   const [isKeyboardVisible, setIsKeyboardVisible] = useState();
-  const isConnecting = useSelector(state => state.isConnecting.state);
+  const isConnecting = useSelector(state => state.connectionStatus.state);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});

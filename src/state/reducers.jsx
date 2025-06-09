@@ -1,5 +1,6 @@
 const connectionStatus = {state: true, isAuthenticated: false};
-const chats = [];
+const chats = {data: []};
+const user = {};
 
 export const connectionStatusReducer = (state = connectionStatus, action) => {
   switch (action.type) {
@@ -40,6 +41,15 @@ export const chatsReducer = (state = chats, action) => {
         ),
       };
     default:
-      return {data: state};
+      return {data: state.data};
+  }
+};
+
+export const userReducer = (state = user, action) => {
+  switch (action.type) {
+    case 'SET_USER':
+      return action.payload;
+    default:
+      return state;
   }
 };
