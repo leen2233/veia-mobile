@@ -10,9 +10,14 @@ import {createDrawerNavigator} from '@react-navigation/drawer';
 import WebsocketService from './src/lib/WebsocketService';
 import {Provider, useDispatch} from 'react-redux';
 import store from './src/state/store';
-import {addMessageToChat, setConnectionStatus} from './src/state/actions';
+import {
+  addMessageToChat,
+  setConnectionStatus,
+  setUser,
+} from './src/state/actions';
 import LoginPage from './src/Login';
 import RegisterPage from './src/Register';
+import EditProfile from './src/EditProfile';
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -39,7 +44,7 @@ function RootStack() {
   const handleResponse = data => {
     console.log('called');
     if (data.action == 'new_message') {
-      dispatch(addMessageToChat(data.data.message, data.data.chat.id));
+      dispatch(addMessageToChat(data.data.message, data.data.chat));
     }
   };
 
@@ -137,6 +142,11 @@ function RootStack() {
             close: configClose,
           },
         }}
+      />
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfile}
+        options={{headerShown: false}}
       />
     </Stack.Navigator>
   );

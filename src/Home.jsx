@@ -458,12 +458,12 @@ function HomeScreen({navigation}) {
                     }}>
                     <Avatar
                       url={user?.avatar}
-                      name={user.username}
+                      name={user.display_name}
                       width={50}
                     />
                     <View style={{justifyContent: 'center', gap: 5}}>
                       <Text style={{color: 'white', fontSize: 18}}>
-                        {user.username}
+                        {user.display_name}
                       </Text>
                       <Text style={{color: '#ababab'}}>{user.email}</Text>
                     </View>
@@ -491,12 +491,12 @@ function HomeScreen({navigation}) {
                     }}>
                     <Avatar
                       url={chat.user.avatar}
-                      name={chat.user.username}
+                      name={chat.user.display_name}
                       width={50}
                     />
                     <View style={{justifyContent: 'center', gap: 5}}>
                       <Text style={{color: 'white', fontSize: 18}}>
-                        {chat.user.username}
+                        {chat.user.display_name}
                       </Text>
                       <Text style={{color: '#ababab'}}>
                         {chat.messages && chat.messages.length > 0

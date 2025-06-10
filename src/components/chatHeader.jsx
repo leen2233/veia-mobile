@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   TouchableNativeFeedback,
   ScrollView,
-  Image,
   Dimensions,
   BackHandler,
 } from 'react-native';
@@ -14,24 +13,17 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   interpolate,
-  runOnJS,
 } from 'react-native-reanimated';
 import {
   ArrowLeft,
   EllipsisVertical,
-  Phone,
-  Video,
-  MessageCircle,
   Bell,
   Shield,
   Palette,
   Moon,
   Users,
   Info,
-  Camera,
-  Edit3,
 } from 'lucide-react-native';
-import {StyleSheet} from 'react-native';
 import Avatar from './avatar';
 
 const {height: screenHeight} = Dimensions.get('window');
@@ -119,6 +111,7 @@ const Header = ({top, navigation, chat}) => {
       togglePanel();
       return true;
     } else {
+      navigation.goBack();
       return false;
     }
   };
@@ -147,14 +140,14 @@ const Header = ({top, navigation, chat}) => {
             <Animated.View style={[styles.avatarContainer, nameInfoStyle]}>
               <Avatar
                 url={chat && chat.user.avatar}
-                name={chat && chat.user.username}
+                name={chat && chat.user.display_name}
                 width={50}
                 style={avatarStyle}
               />
 
               <View style={styles.userDetails}>
                 <Text style={styles.userName}>
-                  {chat && chat.user.username}
+                  {chat && chat.user.display_name}
                 </Text>
                 <Text style={{color: '#c96442'}}>online</Text>
               </View>
@@ -175,11 +168,13 @@ const Header = ({top, navigation, chat}) => {
             <View style={styles.profileImageContainer}>
               <Avatar
                 url={chat?.user?.avatar}
-                name={chat?.user?.username}
+                name={chat?.user?.display_name}
                 width={60}
               />
               <View>
-                <Text style={styles.profileName}>{chat?.user?.username}</Text>
+                <Text style={styles.profileName}>
+                  {chat?.user?.display_name}
+                </Text>
                 <Text style={styles.profilePhone}>{chat?.user?.email}</Text>
               </View>
             </View>

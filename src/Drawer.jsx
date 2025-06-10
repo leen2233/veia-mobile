@@ -9,25 +9,21 @@ import Avatar from './components/avatar';
 import {
   Bookmark,
   CircleUserRound,
+  Edit,
   Phone,
   Settings,
   UserRound,
   Users,
 } from 'lucide-react-native';
 import {useSelector} from 'react-redux';
-import {useEffect} from 'react';
 
 function DrawerContent({navigation}) {
   const user = useSelector(state => state.user);
 
-  useEffect(() => {
-    console.log('user', user);
-  }, [user]);
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Avatar url={user?.avatar} name={user?.username} width={60} />
+        <Avatar url={user?.avatar} name={user?.display_name} width={60} />
         <View style={{height: 60, justifyContent: 'center', gap: 6}}>
           <Text
             style={{
@@ -35,15 +31,18 @@ function DrawerContent({navigation}) {
               fontSize: 20,
               fontWeight: 'bold',
             }}>
-            {user?.username}
+            {user?.display_name}
           </Text>
           <Text style={{color: '#ababab'}}>{user?.email}</Text>
         </View>
       </View>
-      <TouchableNativeFeedback>
+      <TouchableNativeFeedback
+        onPress={() => {
+          navigation.navigate('EditProfile');
+        }}>
         <View style={styles.button}>
-          <CircleUserRound color={'#ababab'} size={22} />
-          <Text style={{color: 'white', fontSize: 16}}>My Profile</Text>
+          <Edit color={'#ababab'} size={22} />
+          <Text style={{color: 'white', fontSize: 16}}>Edit Profile</Text>
         </View>
       </TouchableNativeFeedback>
       <View style={styles.divider}></View>

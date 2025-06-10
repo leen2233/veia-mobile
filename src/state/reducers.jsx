@@ -33,13 +33,25 @@ export const chatsReducer = (state = chats, action) => {
         ),
       };
     case 'ADD_MESSAGE_TO_CHAT':
-      return {
-        data: state.data.map(chat =>
-          chat.id === action.chatId
-            ? {...chat, messages: [...chat.messages, action.payload]}
-            : chat,
-        ),
-      };
+      const chatExists = state.data.some(chat => chat.id === action.chat.id);
+
+      if (chatExists) {
+        return {
+          data: state.data.map(chat =>
+            chat.id === action.chat.id
+              ? {...chat, messages: [...(chat.messages || []), action.payload]}
+              : chat,
+          ),
+        };
+      } else {
+        const newChat = {
+          ...action.chat,
+          messages: [action.payload],
+        };
+        return {
+          data: [newChat, ...state.data],
+        };
+      }
     default:
       return {data: state.data};
   }
