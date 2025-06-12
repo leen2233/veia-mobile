@@ -1,5 +1,5 @@
 import React from 'react';
-import {parseISO, differenceInMinutes, format} from 'date-fns';
+import {parseISO, differenceInMinutes, format, isSameDay} from 'date-fns';
 import {StyleSheet, Text, View} from 'react-native';
 import {Check, CheckCheck, Reply} from 'lucide-react-native';
 import 'react-native-gesture-handler';
@@ -10,16 +10,14 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
-} from 'react-native-gesture-handler';
+import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 
 const Message = ({message, onReply}) => {
   const messageStyle = message.is_mine ? styles.myMessage : styles.otherMessage;
+  const repliedStyle = message.is_mine
+    ? styles.repliedMineStyle
+    : styles.repliedStyle;
   const offset = useSharedValue(0);
 
   const pan = Gesture.Pan()
@@ -46,10 +44,12 @@ const Message = ({message, onReply}) => {
 
   function formatTimestamp(timestamp) {
     const date =
-      typeof timestamp === 'string' ? parseISO(timestamp) : new Date(timestamp);
+      typeof timestamp === 'string'
+        ? parseISO(timestamp)
+        : new Date(timestamp < 1e12 ? timestamp * 1000 : timestamp);
     const now = new Date();
     const diffInMinutes = differenceInMinutes(now, date);
-    if (diffInMinutes < 60) {
+    if (diffInMinutes < 60 && isSameDay(now, date)) {
       return `${diffInMinutes} min ago`;
     }
     return format(date, 'HH:mm');
@@ -85,6 +85,11 @@ const Message = ({message, onReply}) => {
           style={[styles.messageContainer, messageStyle, animatedStyles]}>
           <View style={styles.contentContainer}>
             <View style={styles.messageWrapper}>
+              {message.reply_to && (
+                <View style={repliedStyle}>
+                  <Text style={{color: 'white'}}>{message.reply_to.text}</Text>
+                </View>
+              )}
               <Text style={styles.messageText}>
                 {message.text}
                 <Text style={[styles.timestampPlaceholder]}>
@@ -184,5 +189,25 @@ const styles = StyleSheet.create({
     height: 25,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  repliedMineStyle: {
+    backgroundColor: '#ff835a',
+    paddingHorizontal: 10,
+    minHeight: 30,
+    marginBottom: 6,
+    justifyContent: 'center',
+    borderRadius: 10,
+    borderLeftColor: '#e85827',
+    borderLeftWidth: 5,
+  },
+  repliedStyle: {
+    backgroundColor: '#3b3b3b',
+    paddingHorizontal: 10,
+    minHeight: 30,
+    marginBottom: 6,
+    justifyContent: 'center',
+    borderRadius: 10,
+    borderLeftColor: '#1a1a1a',
+    borderLeftWidth: 5,
   },
 });

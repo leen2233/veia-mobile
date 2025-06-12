@@ -338,7 +338,6 @@ function HomeScreen({navigation}) {
   };
 
   function formatTimestamp(timestamp) {
-    console.log(timestamp, 'timestamp');
     const date =
       typeof timestamp === 'string'
         ? parseISO(timestamp)

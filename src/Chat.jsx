@@ -1,6 +1,4 @@
 import {
-  ArrowLeft,
-  EllipsisVertical,
   MessageCircleReply,
   Mic,
   Paperclip,
@@ -15,16 +13,13 @@ import {
   Text,
   TextInput,
   TouchableNativeFeedback,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import Avatar from './components/avatar';
 import {ScrollView} from 'react-native-gesture-handler';
 import Animated, {
   interpolate,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import {useEffect, useRef, useState} from 'react';
@@ -33,7 +28,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Header from './components/chatHeader';
 import WebsocketService from './lib/WebsocketService';
 import {useDispatch, useSelector} from 'react-redux';
-import {addChat, addMessageToChat, setMessages} from './state/actions';
+import {addChat, setMessages} from './state/actions';
 
 const Chat = ({route, navigation}) => {
   const chats = useSelector(state => state.chats);
@@ -90,10 +85,15 @@ const Chat = ({route, navigation}) => {
   const sendMessage = () => {
     let data = {
       action: 'new_message',
-      data: {chat_id: chat.id, text: inputValue},
+      data: {
+        chat_id: chat.id,
+        text: inputValue,
+        reply_to: replyingTo ? replyingTo.id : null,
+      },
     };
     WebsocketService.send(data);
     setInputValue('');
+    setReplyingTo(null);
   };
 
   useEffect(() => {
@@ -139,10 +139,10 @@ const Chat = ({route, navigation}) => {
 
   useEffect(() => {
     if (replyingTo) {
-      replyBarHeight.value = withTiming(50, {duration: 300});
+      replyBarHeight.value = withTiming(50, {duration: 200});
       scrollRef.current.scrollToEnd({animated: true});
     } else {
-      replyBarHeight.value = withTiming(0, {duration: 300});
+      replyBarHeight.value = withTiming(0, {duration: 200});
     }
   }, [replyingTo]);
 

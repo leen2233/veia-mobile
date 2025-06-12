@@ -28,7 +28,6 @@ export const setMessages = (state, chatId) => {
 };
 
 export const addMessageToChat = (state, messageChat) => {
-  console.log(messageChat, 'chattttttttttttttt');
   return {
     type: 'ADD_MESSAGE_TO_CHAT',
     payload: state,
