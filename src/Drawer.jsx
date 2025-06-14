@@ -70,7 +70,10 @@ function DrawerContent({navigation}) {
           <Text style={{color: 'white', fontSize: 16}}>Saved</Text>
         </View>
       </TouchableNativeFeedback>
-      <TouchableNativeFeedback>
+      <TouchableNativeFeedback
+        onPress={() => {
+          navigation.navigate('Settings');
+        }}>
         <View style={styles.button}>
           <Settings color={'#ababab'} size={22} />
           <Text style={{color: 'white', fontSize: 16}}>Settings</Text>

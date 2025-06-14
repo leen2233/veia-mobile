@@ -18,6 +18,8 @@ import {
 import LoginPage from './src/Login';
 import RegisterPage from './src/Register';
 import EditProfile from './src/EditProfile';
+import SettingsScreen from './src/Settings';
+import UISettings from './src/settings/UI';
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -146,7 +148,56 @@ function RootStack() {
       <Stack.Screen
         name="EditProfile"
         component={EditProfile}
-        options={{headerShown: false}}
+        options={{
+          headerShown: false,
+          swipeEnabled: true,
+          animation: 'slide_from_right',
+
+          gestureEnabled: true,
+          gestureDirection: 'horizontal',
+          gestureResponseDistance: 300,
+          cardStyleInterpolator: forSlide,
+          transitionSpec: {
+            open: configOpen,
+            close: configClose,
+          },
+        }}
+      />
+      <Stack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          headerShown: false,
+          swipeEnabled: true,
+          animation: 'slide_from_right',
+
+          gestureEnabled: true,
+          gestureDirection: 'horizontal',
+          gestureResponseDistance: 300,
+          cardStyleInterpolator: forSlide,
+          transitionSpec: {
+            open: configOpen,
+            close: configClose,
+          },
+        }}
+      />
+      <Stack.Screen
+        name="UISettings"
+        component={UISettings}
+        options={{
+          headerShown: false,
+          swipeEnabled: true,
+          animation: 'slide_from_right',
+
+          gestureEnabled: true,
+          gestureDirection: 'horizontal',
+          gestureResponseDistance: 300,
+          cardStyleInterpolator: forSlide,
+          transitionSpec: {
+            open: configOpen,
+            close: configClose,
+          },
+        }}
       />
     </Stack.Navigator>
   );

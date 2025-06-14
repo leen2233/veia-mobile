@@ -169,11 +169,14 @@ const Header = ({top, navigation, chat}) => {
               <Avatar
                 url={chat?.user?.avatar}
                 name={chat?.user?.display_name}
-                width={60}
+                width={70}
               />
               <View>
                 <Text style={styles.profileName}>
                   {chat?.user?.display_name}
+                </Text>
+                <Text style={[styles.profilePhone, {color: '#c96442'}]}>
+                  @{chat?.user?.username}
                 </Text>
                 <Text style={styles.profilePhone}>{chat?.user?.email}</Text>
               </View>
@@ -299,10 +302,9 @@ const styles = {
     gap: 15,
   },
   profileName: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
-    marginBottom: 4,
   },
   profilePhone: {
     fontSize: 16,

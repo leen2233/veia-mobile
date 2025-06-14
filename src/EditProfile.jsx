@@ -16,6 +16,7 @@ import {Camera, Save, X, ArrowLeft} from 'lucide-react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import WebsocketService from './lib/WebsocketService';
 import {setUser} from './state/actions';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 const EditProfile = ({navigation}) => {
   const user = useSelector(state => state.user);
@@ -26,6 +27,8 @@ const EditProfile = ({navigation}) => {
   const [bio, setBio] = useState(user?.bio || '');
   const [avatar, setAvatar] = useState(user?.avatar);
   const [error, setError] = useState('');
+
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     WebsocketService.addListener(handleResponse);
@@ -231,15 +234,10 @@ const EditProfile = ({navigation}) => {
     navigation.goBack();
   };
 
-  const handleCancel = () => {
-    setFullName(user?.fullName || '');
-    setUsername(user?.username || '');
-    setBio(user?.bio || '');
-    setAvatarUri(user?.avatar);
-  };
-
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={[styles.container, {paddingTop: insets.top}]}
+      showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -306,7 +304,7 @@ const EditProfile = ({navigation}) => {
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={[styles.button, styles.cancelButton]}
-            onPress={handleCancel}>
+            onPress={handleBack}>
             <X size={20} color="#666" />
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
@@ -374,7 +372,6 @@ const styles = {
   },
   content: {
     padding: 20,
-    paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
@@ -416,7 +413,7 @@ const styles = {
     color: '#ababab',
   },
   formContainer: {
-    marginBottom: 40,
+    marginBottom: 10,
   },
   fieldContainer: {
     marginBottom: 14,
