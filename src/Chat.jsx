@@ -7,6 +7,7 @@ import {
   X,
 } from 'lucide-react-native';
 import {
+  ImageBackground,
   Keyboard,
   KeyboardAvoidingView,
   StyleSheet,
@@ -29,6 +30,7 @@ import Header from './components/chatHeader';
 import WebsocketService from './lib/WebsocketService';
 import {useDispatch, useSelector} from 'react-redux';
 import {addChat, setMessages} from './state/actions';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Chat = ({route, navigation}) => {
   const chats = useSelector(state => state.chats);
@@ -41,6 +43,7 @@ const Chat = ({route, navigation}) => {
   const replyBarHeight = useSharedValue(0);
   const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
+  const settings = useSelector(state => state.settings);
 
   const chatId = useRef(route.params.chat?.id);
   const messages = chat?.messages || [];
@@ -50,6 +53,21 @@ const Chat = ({route, navigation}) => {
     return () => {
       WebsocketService.removeListener(handleResponse);
     };
+  }, []);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const savedSettings = await AsyncStorage.getItem('chat_settings');
+        console.log(savedSettings);
+        if (savedSettings !== null) {
+          dispatch({type: 'SET_SETTINGS', payload: JSON.parse(savedSettings)}); // Dispatch an action to set settings in Redux
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    };
+    loadSettings();
   }, []);
 
   useEffect(() => {
@@ -164,24 +182,31 @@ const Chat = ({route, navigation}) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={isKeyboardVisible ? 0 : -50}>
         <Header top={insets.top} navigation={navigation} chat={chat} />
-        <ScrollView
-          style={styles.chatContainer}
-          ref={scrollRef}
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: 'flex-end',
-            paddingBottom: 10,
-          }}>
-          {messages.map((message, index) => (
-            <Message
-              key={index}
-              message={message}
-              onReply={message => {
-                setReplyingTo(message);
-              }}
-            />
-          ))}
-        </ScrollView>
+        <ImageBackground
+          style={{flex: 1}}
+          source={{uri: settings.backgroundImage}}>
+          <ScrollView
+            style={styles.chatContainer}
+            ref={scrollRef}
+            contentContainerStyle={{
+              flexGrow: 1,
+              justifyContent: 'flex-end',
+              paddingBottom: 10,
+            }}>
+            {messages.map((message, index) => (
+              <Message
+                key={index}
+                message={message}
+                onReply={message => {
+                  setReplyingTo(message);
+                }}
+                myBubbleColor={settings.myBubbleColor}
+                otherBubbleColor={settings.otherBubbleColor}
+                fontSize={settings.fontSize}
+              />
+            ))}
+          </ScrollView>
+        </ImageBackground>
 
         <View>
           <Animated.View style={[styles.replyingTo, replyingToAnimatedStyle]}>
@@ -244,7 +269,6 @@ const styles = StyleSheet.create({
   },
   chatContainer: {
     flex: 1,
-    backgroundColor: '#141516',
   },
   inputContainer: {
     height: 60,

@@ -7,14 +7,28 @@ import {
   Switch,
   TouchableOpacity,
   ScrollView,
+  TouchableNativeFeedback,
+  Platform,
+  PermissionsAndroid,
+  ImageBackground,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {CheckCheck, ChevronLeft} from 'lucide-react-native';
+import {
+  ArrowDown,
+  ArrowRight,
+  CaseSensitive,
+  CheckCheck,
+  ChevronLeft,
+  Image,
+  ImagePlus,
+  ImageUpscale,
+  LetterText,
+  Paintbrush,
+} from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ColorPicker from 'react-native-wheel-color-picker'; // You'll need to install this or a similar library
-
-const SETTINGS_KEY = '@chat_settings';
+import ImageCropPicker from 'react-native-image-crop-picker';
 
 const Message = ({message, myMessageColor, otherMessageColor, fontSize}) => {
   const messageStyle = message.is_mine ? styles.myMessage : styles.otherMessage;
@@ -49,13 +63,15 @@ const Message = ({message, myMessageColor, otherMessageColor, fontSize}) => {
           <View style={styles.messageWrapper}>
             <Text style={[styles.messageText, {fontSize: fontSize}]}>
               {message.text}
-              <Text style={[styles.timestampPlaceholder]}>
-                {formattedTime}
+              <Text
+                style={[styles.timestampPlaceholder, {fontSize: fontSize - 2}]}>
+                {' '}
+                {formattedTime}{' '}
                 {message.status === 'sent' ? (
-                  <Check color={'transparent'} size={18} />
+                  <Check color={'transparent'} size={fontSize + 2} />
                 ) : (
                   message.status === 'read' && (
-                    <CheckCheck color={'transparent'} size={18} />
+                    <CheckCheck color={'transparent'} size={fontSize + 2} />
                   )
                 )}
               </Text>
@@ -66,7 +82,7 @@ const Message = ({message, myMessageColor, otherMessageColor, fontSize}) => {
                   color: '#CCCCCC',
                   fontSize: fontSize - 2,
                 }}>
-                {formattedTime}
+                {formattedTime}{' '}
               </Text>
               {message.is_mine &&
                 (message.status === 'sent' ? (
@@ -94,8 +110,9 @@ const UISettings = ({navigation}) => {
   const [myBubbleColor, setMyBubbleColor] = useState('#c96442');
   const [otherBubbleColor, setOtherBubbleColor] = useState('#202324');
   const [fontSize, setFontSize] = useState(16);
+  const [openedSection, setOpenedSection] = useState(null);
+  const [backgroundImage, setBackgroundImage] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(null);
-  // Sample Messages for Preview
   const [sampleMyMessage, setSampleMyMessage] = useState({
     text: 'This is my message.',
     is_mine: true,
@@ -114,13 +131,14 @@ const UISettings = ({navigation}) => {
 
   const loadSettings = async () => {
     try {
-      const storedSettings = await AsyncStorage.getItem(SETTINGS_KEY);
+      const storedSettings = await AsyncStorage.getItem('chat_settings');
       if (storedSettings) {
         const parsedSettings = JSON.parse(storedSettings);
         setBackgroundColor(parsedSettings.backgroundColor || '#141516');
         setMyBubbleColor(parsedSettings.myBubbleColor || '#c96442');
         setOtherBubbleColor(parsedSettings.otherBubbleColor || '#202324');
         setFontSize(parsedSettings.fontSize || 16);
+        setBackgroundImage(parsedSettings.backgroundImage || null);
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -134,16 +152,100 @@ const UISettings = ({navigation}) => {
         myBubbleColor,
         otherBubbleColor,
         fontSize,
+        backgroundImage,
       });
-      await AsyncStorage.setItem(SETTINGS_KEY, settingsToSave);
+      await AsyncStorage.setItem('chat_settings', settingsToSave);
     } catch (error) {
       console.error('Failed to save settings:', error);
     }
   };
 
-  useEffect(() => {
-    saveSettings();
-  }, [backgroundColor, myBubbleColor, otherBubbleColor, fontSize]);
+  const handleImageSelection = async () => {
+    try {
+      // Request permissions first
+      const hasPermission = await requestStoragePermissions();
+      if (!hasPermission) {
+        alert('Storage permission denied');
+        return;
+      }
+
+      let result;
+      let croppedImage;
+      const cropperOptions = {
+        width: 400,
+        height: 800,
+        cropping: true,
+        mediaType: 'photo',
+        compressImageQuality: 0.8,
+        forceJpg: true, // Force JPEG format
+        includeBase64: true, // Include base64 data
+        cropperToolbarTitle: 'Crop Chat Background',
+        cropperToolbarColor: '#2a2e31',
+        cropperStatusBarColor: '#2a2e31',
+        cropperToolbarWidgetColor: '#ffffff',
+        cropperActiveWidgetColor: '#c96442',
+        cropperTintColor: '#c96442',
+        loadingLabelText: 'Processing...',
+        enableRotationGesture: true,
+      };
+
+      result = await ImageCropPicker.openPicker({
+        mediaType: 'photo',
+        cropping: false,
+      });
+      croppedImage = await ImageCropPicker.openCropper({
+        ...cropperOptions,
+        path: result.path,
+      });
+      console.log('cropped', croppedImage);
+
+      if (result) {
+        console.log(result, 'result');
+
+        setBackgroundImage(croppedImage.path);
+      }
+    } catch (error) {
+      if (error.message !== 'User cancelled image selection') {
+        console.error('Error picking image:', error);
+        alert('Failed to process the image. Please try another one.');
+      }
+    }
+  };
+
+  const requestStoragePermissions = async () => {
+    if (Platform.OS === 'android' && Platform.Version >= 33) {
+      try {
+        const permissions = [PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES];
+
+        const results = await PermissionsAndroid.requestMultiple(permissions);
+
+        return Object.values(results).every(
+          result => result === PermissionsAndroid.RESULTS.GRANTED,
+        );
+      } catch (err) {
+        console.error('Permission error:', err);
+        return false;
+      }
+    } else if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+          {
+            title: 'Storage Permission',
+            message: 'Flickture needs access to your storage to select photos',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.error('Permission error:', err);
+        return false;
+      }
+    }
+    return true; // iOS handled by Info.plist
+  };
 
   const renderColorPicker = (settingType, currentColor, setColor) => {
     if (showColorPicker === settingType) {
@@ -155,7 +257,6 @@ const UISettings = ({navigation}) => {
             thumbSize={30}
             sliderSize={30}
             noSnap={true}
-            row={false}
             swatchesLast={false}
             swatches={false}
             shadeWheelThumb={false}
@@ -184,93 +285,203 @@ const UISettings = ({navigation}) => {
       </View>
       <ScrollView contentContainerStyle={styles.settingsContent}>
         {/* Sample Messages */}
-        <Text style={styles.sectionTitle}>Preview</Text>
-        <View
-          style={[
-            styles.previewMessageContainer,
-            {backgroundColor: backgroundColor},
-          ]}>
-          <Message
-            message={sampleMyMessage}
-            myMessageColor={myBubbleColor}
-            otherMessageColor={otherBubbleColor}
-            fontSize={fontSize}
-            onReply={() => {}}
-          />
-          <Message
-            message={sampleOtherMessage}
-            myMessageColor={myBubbleColor}
-            otherMessageColor={otherBubbleColor}
-            fontSize={fontSize}
-            onReply={() => {}}
-          />
-        </View>
-
-        <Text style={styles.sectionTitle}>Appearance</Text>
-
-        <TouchableOpacity
-          style={styles.settingItem}
-          onPress={() =>
-            setShowColorPicker(
-              showColorPicker === 'background' ? null : 'background',
-            )
-          }>
-          <Text style={styles.settingText}>Background Color</Text>
+        <Text style={[styles.sectionTitle, {marginVertical: 20}]}>Preview</Text>
+        {backgroundImage ? (
+          <ImageBackground
+            source={{uri: backgroundImage}}
+            style={styles.previewBackgroundImage}
+            resizeMode="cover">
+            <View style={styles.previewOverlay}>
+              <Message
+                message={sampleOtherMessage}
+                myMessageColor={myBubbleColor}
+                otherMessageColor={otherBubbleColor}
+                fontSize={fontSize}
+              />
+              <Message
+                message={sampleMyMessage}
+                myMessageColor={myBubbleColor}
+                otherBubbleColor={otherBubbleColor}
+                fontSize={fontSize}
+              />
+            </View>
+          </ImageBackground>
+        ) : (
           <View
-            style={[styles.colorPreview, {backgroundColor: backgroundColor}]}
-          />
-        </TouchableOpacity>
-        {renderColorPicker('background', backgroundColor, setBackgroundColor)}
-
-        <TouchableOpacity
-          style={styles.settingItem}
-          onPress={() =>
-            setShowColorPicker(
-              showColorPicker === 'myBubble' ? null : 'myBubble',
-            )
-          }>
-          <Text style={styles.settingText}>My Message Bubble Color</Text>
-          <View
-            style={[styles.colorPreview, {backgroundColor: myBubbleColor}]}
-          />
-        </TouchableOpacity>
-        {renderColorPicker('myBubble', myBubbleColor, setMyBubbleColor)}
-
-        <TouchableOpacity
-          style={styles.settingItem}
-          onPress={() =>
-            setShowColorPicker(
-              showColorPicker === 'otherBubble' ? null : 'otherBubble',
-            )
-          }>
-          <Text style={styles.settingText}>Other Message Bubble Color</Text>
-          <View
-            style={[styles.colorPreview, {backgroundColor: otherBubbleColor}]}
-          />
-        </TouchableOpacity>
-        {renderColorPicker(
-          'otherBubble',
-          otherBubbleColor,
-          setOtherBubbleColor,
+            style={[
+              styles.previewColorBackground,
+              {backgroundColor: backgroundColor},
+            ]}>
+            <Message
+              message={sampleOtherMessage}
+              myMessageColor={myBubbleColor}
+              otherMessageColor={otherBubbleColor}
+              fontSize={fontSize}
+            />
+            <Message
+              message={sampleMyMessage}
+              myMessageColor={myBubbleColor}
+              otherMessageColor={otherBubbleColor}
+              fontSize={fontSize}
+            />
+          </View>
         )}
 
-        <Text style={styles.sectionTitle}>Text Settings</Text>
-        <View style={styles.settingItem}>
-          <Text style={styles.settingText}>Font Size</Text>
-          <Text style={styles.settingValue}>{fontSize} px</Text>
-        </View>
-        <Slider
-          style={{width: '90%', alignSelf: 'center', marginTop: 10}}
-          minimumValue={10}
-          maximumValue={26}
-          step={1}
-          value={fontSize}
-          onValueChange={value => setFontSize(value)}
-          minimumTrackTintColor="#c96442"
-          maximumTrackTintColor="#aaa"
-          thumbTintColor="#c96442"
-        />
+        <TouchableOpacity
+          onPress={() =>
+            setOpenedSection(
+              openedSection === 'background' ? null : 'background',
+            )
+          }
+          style={styles.sectionOpenButton}>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
+            <Image color={'#ababab'} />
+            <Text style={styles.sectionTitle}>Background</Text>
+          </View>
+          {openedSection === 'background' ? (
+            <ArrowDown color={'white'} size={22} />
+          ) : (
+            <ArrowRight color={'white'} size={22} />
+          )}
+        </TouchableOpacity>
+
+        {openedSection === 'background' && (
+          <View>
+            {backgroundImage && (
+              <TouchableNativeFeedback>
+                <View style={styles.nestedButton}>
+                  <ImageUpscale size={18} color={'#c96442'} />
+                  <Text style={styles.nestedButtonText}>
+                    View current Image
+                  </Text>
+                </View>
+              </TouchableNativeFeedback>
+            )}
+            <TouchableNativeFeedback onPress={handleImageSelection}>
+              <View style={styles.nestedButton}>
+                <ImagePlus size={18} color={'#c96442'} />
+                <Text style={styles.nestedButtonText}>
+                  Select background image
+                </Text>
+              </View>
+            </TouchableNativeFeedback>
+          </View>
+        )}
+
+        <TouchableOpacity
+          onPress={() =>
+            setOpenedSection(openedSection === 'colors' ? null : 'colors')
+          }
+          style={styles.sectionOpenButton}>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
+            <Paintbrush color={'#ababab'} />
+            <Text style={styles.sectionTitle}>Colors</Text>
+          </View>
+          {openedSection === 'colors' ? (
+            <ArrowDown color={'white'} size={22} />
+          ) : (
+            <ArrowRight color={'white'} size={22} />
+          )}
+        </TouchableOpacity>
+
+        {openedSection === 'colors' && (
+          <View>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() =>
+                setShowColorPicker(
+                  showColorPicker === 'background' ? null : 'background',
+                )
+              }>
+              <Text style={styles.settingText}>Background Color</Text>
+              <View
+                style={[
+                  styles.colorPreview,
+                  {backgroundColor: backgroundColor},
+                ]}
+              />
+            </TouchableOpacity>
+            {renderColorPicker(
+              'background',
+              backgroundColor,
+              setBackgroundColor,
+            )}
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() =>
+                setShowColorPicker(
+                  showColorPicker === 'myBubble' ? null : 'myBubble',
+                )
+              }>
+              <Text style={styles.settingText}>My Message Bubble Color</Text>
+              <View
+                style={[styles.colorPreview, {backgroundColor: myBubbleColor}]}
+              />
+            </TouchableOpacity>
+            {renderColorPicker('myBubble', myBubbleColor, setMyBubbleColor)}
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() =>
+                setShowColorPicker(
+                  showColorPicker === 'otherBubble' ? null : 'otherBubble',
+                )
+              }>
+              <Text style={styles.settingText}>Other Message Bubble Color</Text>
+              <View
+                style={[
+                  styles.colorPreview,
+                  {backgroundColor: otherBubbleColor},
+                ]}
+              />
+            </TouchableOpacity>
+            {renderColorPicker(
+              'otherBubble',
+              otherBubbleColor,
+              setOtherBubbleColor,
+            )}
+          </View>
+        )}
+
+        <TouchableOpacity
+          onPress={() =>
+            setOpenedSection(openedSection === 'font' ? null : 'font')
+          }
+          style={styles.sectionOpenButton}>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
+            <CaseSensitive color={'#ababab'} />
+            <Text style={styles.sectionTitle}>Font</Text>
+          </View>
+          {openedSection === 'font' ? (
+            <ArrowDown color={'white'} size={22} />
+          ) : (
+            <ArrowRight color={'white'} size={22} />
+          )}
+        </TouchableOpacity>
+        {openedSection === 'font' && (
+          <View>
+            <View style={styles.settingItem}>
+              <Text style={styles.settingText}>Font Size</Text>
+              <Text style={styles.settingValue}>{fontSize} px</Text>
+            </View>
+            <Slider
+              style={{width: '90%', alignSelf: 'center', marginTop: 10}}
+              minimumValue={10}
+              maximumValue={26}
+              step={1}
+              value={fontSize}
+              onValueChange={value => setFontSize(value)}
+              minimumTrackTintColor="#c96442"
+              maximumTrackTintColor="#aaa"
+              thumbTintColor="#c96442"
+            />
+          </View>
+        )}
       </ScrollView>
+      <TouchableOpacity style={styles.saveButton} onPress={saveSettings}>
+        <Text style={styles.closeColorPickerText}>Save Changes</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -300,8 +511,6 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontSize: 16,
     fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 10,
   },
   settingItem: {
     flexDirection: 'row',
@@ -338,7 +547,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     backgroundColor: '#c96442',
     padding: 10,
-    borderRadius: 5,
+    borderRadius: 10,
     alignItems: 'center',
   },
   closeColorPickerText: {
@@ -378,7 +587,6 @@ const styles = StyleSheet.create({
   timestampPlaceholder: {
     color: 'transparent',
     flexDirection: 'row',
-    paddingLeft: 5,
   },
   timestampOverlay: {
     position: 'absolute',
@@ -388,6 +596,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  saveButton: {
+    height: 50,
+    backgroundColor: '#c96442',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 30,
+    width: '80%',
+    margin: 'auto',
+    borderRadius: 15,
+  },
+  sectionOpenButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  nestedButton: {
+    marginLeft: 30,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 10,
+  },
+  nestedButtonText: {
+    color: '#c96442',
+    fontSize: 14,
   },
 });
 

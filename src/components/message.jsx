@@ -13,7 +13,33 @@ import Animated, {
 } from 'react-native-reanimated';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 
-const Message = ({message, onReply}) => {
+const lightenColor = (hex, percent) => {
+  let f = parseInt(hex.slice(1), 16),
+    t = percent < 0 ? 0 : 255,
+    p = percent < 0 ? percent * -1 : percent,
+    R = f >> 16,
+    G = (f >> 8) & 0x00ff,
+    B = f & 0x0000ff;
+  return (
+    '#' +
+    (
+      0x1000000 +
+      (Math.round((t - R) * p) + R) * 0x10000 +
+      (Math.round((t - G) * p) + G) * 0x100 +
+      (Math.round((t - B) * p) + B)
+    )
+      .toString(16)
+      .slice(1)
+  );
+};
+
+const Message = ({
+  message,
+  onReply,
+  myBubbleColor = '#c96442',
+  otherBubbleColor = '#202324',
+  fontSize,
+}) => {
   const messageStyle = message.is_mine ? styles.myMessage : styles.otherMessage;
   const repliedStyle = message.is_mine
     ? styles.repliedMineStyle
@@ -77,28 +103,56 @@ const Message = ({message, onReply}) => {
   });
 
   const formattedTime = formatTimestamp(message.time);
+  console.log(myBubbleColor);
 
   return (
     <GestureDetector gesture={pan}>
       <View style={{width: '100%'}}>
         <Animated.View
-          style={[styles.messageContainer, messageStyle, animatedStyles]}>
+          style={[
+            styles.messageContainer,
+            messageStyle,
+            animatedStyles,
+            {
+              backgroundColor: message.is_mine
+                ? myBubbleColor
+                : otherBubbleColor,
+            },
+          ]}>
           <View style={styles.contentContainer}>
             <View style={styles.messageWrapper}>
               {message.reply_to && (
-                <View style={repliedStyle}>
-                  <Text style={{color: 'white'}}>{message.reply_to.text}</Text>
+                <View
+                  style={[
+                    repliedStyle,
+                    {
+                      backgroundColor: message.is_mine
+                        ? lightenColor(myBubbleColor, 0.2)
+                        : lightenColor(otherBubbleColor, 0.2),
+                      borderLeftColor: message.is_mine
+                        ? lightenColor(myBubbleColor, -0.2)
+                        : lightenColor(otherBubbleColor, -0.2),
+                    },
+                  ]}>
+                  <Text style={{color: 'white', fontSize: fontSize - 2}}>
+                    {message.reply_to.text}
+                  </Text>
                 </View>
               )}
-              <Text style={styles.messageText}>
+              <Text style={[styles.messageText, {fontSize: fontSize}]}>
                 {message.text}
-                <Text style={[styles.timestampPlaceholder]}>
-                  {formattedTime}
+                <Text
+                  style={[
+                    styles.timestampPlaceholder,
+                    {fontSize: fontSize - 2},
+                  ]}>
+                  {' '}
+                  {formattedTime}{' '}
                   {message.status === 'sent' ? (
-                    <Check color={'transparent'} size={18} />
+                    <Check color={'transparent'} size={fontSize + 2} />
                   ) : (
                     message.status === 'read' && (
-                      <CheckCheck color={'transparent'} size={18} />
+                      <CheckCheck color={'transparent'} size={fontSize + 2} />
                     )
                   )}
                 </Text>
@@ -107,17 +161,17 @@ const Message = ({message, onReply}) => {
                 <Text
                   style={{
                     color: '#CCCCCC',
-                    fontSize: 12,
+                    fontSize: fontSize - 2,
                   }}>
-                  {formattedTime}
+                  {formattedTime}{' '}
                 </Text>
                 {message.is_mine &&
                   (message.status === 'sent' ? (
-                    <Check size={18} color={'white'} />
+                    <Check size={fontSize + 2} color={'white'} />
                   ) : (
                     message.status === 'read' && (
                       <CheckCheck
-                        size={18}
+                        size={fontSize + 2}
                         color={'white'}
                         style={{backgroundColor: 'transparent'}}
                       />
@@ -146,11 +200,9 @@ const styles = StyleSheet.create({
     minHeight: 20,
   },
   myMessage: {
-    backgroundColor: '#c96442',
     alignSelf: 'flex-end',
   },
   otherMessage: {
-    backgroundColor: '#202324',
     alignSelf: 'flex-start',
   },
   contentContainer: {
@@ -191,7 +243,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   repliedMineStyle: {
-    backgroundColor: '#ff835a',
     paddingHorizontal: 10,
     minHeight: 30,
     marginBottom: 6,
@@ -201,7 +252,6 @@ const styles = StyleSheet.create({
     borderLeftWidth: 5,
   },
   repliedStyle: {
-    backgroundColor: '#3b3b3b',
     paddingHorizontal: 10,
     minHeight: 30,
     marginBottom: 6,
