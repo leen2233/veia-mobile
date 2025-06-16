@@ -76,6 +76,9 @@ const Message = ({
     const now = new Date();
     const diffInMinutes = differenceInMinutes(now, date);
     if (diffInMinutes < 60 && isSameDay(now, date)) {
+      if (diffInMinutes < 1) {
+        return 'Just now';
+      }
       return `${diffInMinutes} min ago`;
     }
     return format(date, 'HH:mm');
@@ -146,7 +149,7 @@ const Message = ({
                     styles.timestampPlaceholder,
                     {fontSize: fontSize - 2},
                   ]}>
-                  {' '}
+                  {'  '}
                   {formattedTime}{' '}
                   {message.status === 'sent' ? (
                     <Check color={'transparent'} size={fontSize + 2} />
@@ -167,11 +170,11 @@ const Message = ({
                 </Text>
                 {message.is_mine &&
                   (message.status === 'sent' ? (
-                    <Check size={fontSize + 2} color={'white'} />
+                    <Check size={fontSize} color={'white'} />
                   ) : (
                     message.status === 'read' && (
                       <CheckCheck
-                        size={fontSize + 2}
+                        size={fontSize}
                         color={'white'}
                         style={{backgroundColor: 'transparent'}}
                       />

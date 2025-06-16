@@ -4,13 +4,14 @@ import {
   View,
   Text,
   StyleSheet,
-  Switch,
   TouchableOpacity,
   ScrollView,
   TouchableNativeFeedback,
   Platform,
   PermissionsAndroid,
   ImageBackground,
+  Modal,
+  Image,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -20,10 +21,10 @@ import {
   CaseSensitive,
   CheckCheck,
   ChevronLeft,
-  Image,
+  Image as ImageIcon,
+  ImageOff,
   ImagePlus,
   ImageUpscale,
-  LetterText,
   Paintbrush,
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -113,6 +114,7 @@ const UISettings = ({navigation}) => {
   const [openedSection, setOpenedSection] = useState(null);
   const [backgroundImage, setBackgroundImage] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(null);
+  const [isImageViewerVisible, setImageViewerVisible] = useState(false);
   const [sampleMyMessage, setSampleMyMessage] = useState({
     text: 'This is my message.',
     is_mine: true,
@@ -232,7 +234,7 @@ const UISettings = ({navigation}) => {
           PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
           {
             title: 'Storage Permission',
-            message: 'Flickture needs access to your storage to select photos',
+            message: 'Veia needs access to your storage to select photos',
             buttonNeutral: 'Ask Me Later',
             buttonNegative: 'Cancel',
             buttonPositive: 'OK',
@@ -335,7 +337,7 @@ const UISettings = ({navigation}) => {
           }
           style={styles.sectionOpenButton}>
           <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
-            <Image color={'#ababab'} />
+            <ImageIcon color={'#ababab'} />
             <Text style={styles.sectionTitle}>Background</Text>
           </View>
           {openedSection === 'background' ? (
@@ -348,11 +350,28 @@ const UISettings = ({navigation}) => {
         {openedSection === 'background' && (
           <View>
             {backgroundImage && (
-              <TouchableNativeFeedback>
+              <TouchableNativeFeedback
+                onPress={() => {
+                  setImageViewerVisible(true);
+                  console.log(backgroundImage);
+                }}>
                 <View style={styles.nestedButton}>
                   <ImageUpscale size={18} color={'#c96442'} />
                   <Text style={styles.nestedButtonText}>
                     View current Image
+                  </Text>
+                </View>
+              </TouchableNativeFeedback>
+            )}
+            {backgroundImage && (
+              <TouchableNativeFeedback
+                onPress={() => {
+                  setBackgroundImage(null);
+                }}>
+                <View style={styles.nestedButton}>
+                  <ImageOff size={18} color={'#c96442'} />
+                  <Text style={styles.nestedButtonText}>
+                    Clear current Image
                   </Text>
                 </View>
               </TouchableNativeFeedback>
@@ -386,27 +405,6 @@ const UISettings = ({navigation}) => {
 
         {openedSection === 'colors' && (
           <View>
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() =>
-                setShowColorPicker(
-                  showColorPicker === 'background' ? null : 'background',
-                )
-              }>
-              <Text style={styles.settingText}>Background Color</Text>
-              <View
-                style={[
-                  styles.colorPreview,
-                  {backgroundColor: backgroundColor},
-                ]}
-              />
-            </TouchableOpacity>
-            {renderColorPicker(
-              'background',
-              backgroundColor,
-              setBackgroundColor,
-            )}
-
             <TouchableOpacity
               style={styles.settingItem}
               onPress={() =>
@@ -460,7 +458,7 @@ const UISettings = ({navigation}) => {
           )}
         </TouchableOpacity>
         {openedSection === 'font' && (
-          <View>
+          <View style={{width: '90%', alignSelf: 'center', marginTop: 10}}>
             <View style={styles.settingItem}>
               <Text style={styles.settingText}>Font Size</Text>
               <Text style={styles.settingValue}>{fontSize} px</Text>
@@ -482,6 +480,25 @@ const UISettings = ({navigation}) => {
       <TouchableOpacity style={styles.saveButton} onPress={saveSettings}>
         <Text style={styles.closeColorPickerText}>Save Changes</Text>
       </TouchableOpacity>
+
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isImageViewerVisible}
+        onRequestClose={() => setImageViewerVisible(false)}>
+        <View style={styles.imageViewerModal}>
+          <TouchableOpacity
+            style={styles.imageViewerBackdrop}
+            activeOpacity={1}
+            onPressOut={() => setImageViewerVisible(false)}
+          />
+          <Image
+            source={{uri: backgroundImage}}
+            style={styles.fullScreenImage}
+            resizeMode="contain"
+          />
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -622,6 +639,25 @@ const styles = StyleSheet.create({
   nestedButtonText: {
     color: '#c96442',
     fontSize: 14,
+  },
+  previewBackgroundImage: {
+    paddingVertical: 20,
+  },
+  previewColorBackground: {
+    paddingVertical: 20,
+  },
+  imageViewerModal: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  imageViewerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  fullScreenImage: {
+    width: '90%',
+    height: '90%',
   },
 });
 

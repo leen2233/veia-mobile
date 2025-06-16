@@ -135,8 +135,7 @@ const EditProfile = ({navigation}) => {
           PermissionsAndroid.PERMISSIONS.CAMERA,
           {
             title: 'Camera Permission',
-            message:
-              'Flickture needs access to your camera to take profile photos',
+            message: 'Veia needs access to your camera to take profile photos',
             buttonNeutral: 'Ask Me Later',
             buttonNegative: 'Cancel',
             buttonPositive: 'OK',
@@ -174,7 +173,7 @@ const EditProfile = ({navigation}) => {
           PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
           {
             title: 'Storage Permission',
-            message: 'Flickture needs access to your storage to select photos',
+            message: 'Veia needs access to your storage to select photos',
             buttonNeutral: 'Ask Me Later',
             buttonNegative: 'Cancel',
             buttonPositive: 'OK',

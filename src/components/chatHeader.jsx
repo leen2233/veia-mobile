@@ -127,7 +127,6 @@ const Header = ({top, navigation, chat}) => {
 
   return (
     <Animated.View style={[styles.header, headerStyle, {paddingTop: top}]}>
-      {/* Top Navigation Bar */}
       <View style={styles.topBar}>
         <View style={styles.leftSection}>
           <TouchableNativeFeedback onPress={backClicked}>
@@ -224,17 +223,27 @@ export default Header;
 
 const styles = {
   header: {
-    backgroundColor: '#202324',
+    backgroundColor: '#202324dd',
     overflow: 'hidden',
     borderColor: 'grey',
     borderBottomWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderTopWidth: 0,
+    position: 'absolute',
+    top: 0,
+    right: '-1%',
+    zIndex: 1000,
+    width: '102%',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
   },
   topBar: {
-    height: 80,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    height: 80,
   },
   leftSection: {
     flexDirection: 'row',

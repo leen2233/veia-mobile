@@ -397,11 +397,9 @@ function HomeScreen({navigation}) {
     // Only react to significant scroll movements (threshold of 5px)
     if (Math.abs(scrollDelta) > 5) {
       if (scrollDelta > 0 && scrollDirection.current !== 'down') {
-        // Scrolling down
         scrollDirection.current = 'down';
         hideFloatingButton();
       } else if (scrollDelta < 0 && scrollDirection.current !== 'up') {
-        // Scrolling up
         scrollDirection.current = 'up';
         showFloatingButton();
       }

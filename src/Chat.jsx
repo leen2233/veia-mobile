@@ -183,7 +183,7 @@ const Chat = ({route, navigation}) => {
         keyboardVerticalOffset={isKeyboardVisible ? 0 : -50}>
         <Header top={insets.top} navigation={navigation} chat={chat} />
         <ImageBackground
-          style={{flex: 1}}
+          style={{flex: 1, backgroundColor: '#141516'}}
           source={{uri: settings.backgroundImage}}>
           <ScrollView
             style={styles.chatContainer}
