@@ -52,6 +52,20 @@ export const chatsReducer = (state = chats, action) => {
           data: [newChat, ...state.data],
         };
       }
+    case 'STATUS_CHANGE':
+      return {
+        data: state.data.map(chat => ({
+          ...chat,
+          user:
+            chat.user.id === action.userId
+              ? {
+                  ...chat.user,
+                  is_online: action.status === 'online',
+                  last_seen: action.last_seen,
+                }
+              : chat.user,
+        })),
+      };
     default:
       return {data: state.data};
   }

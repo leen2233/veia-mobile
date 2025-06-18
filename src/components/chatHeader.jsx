@@ -26,6 +26,31 @@ import {
 } from 'lucide-react-native';
 import Avatar from './avatar';
 
+import {format, isToday, differenceInMinutes, parseISO} from 'date-fns';
+
+function formatTimestamp(timestamp) {
+  const date =
+    typeof timestamp === 'string'
+      ? parseISO(timestamp)
+      : new Date(timestamp < 1e12 ? timestamp * 1000 : timestamp);
+  const now = new Date();
+  const diffInMinutes = differenceInMinutes(now, date);
+
+  if (diffInMinutes === 0) {
+    return 'Just Now';
+  }
+
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes} min ago`;
+  }
+
+  if (isToday(date)) {
+    return format(date, 'HH:mm');
+  }
+
+  return format(date, 'MMM d HH:mm');
+}
+
 const {height: screenHeight} = Dimensions.get('window');
 
 const Header = ({top, navigation, chat}) => {
@@ -148,7 +173,13 @@ const Header = ({top, navigation, chat}) => {
                 <Text style={styles.userName}>
                   {chat && chat.user.display_name}
                 </Text>
-                <Text style={{color: '#c96442'}}>online</Text>
+                {chat?.user?.is_online ? (
+                  <Text style={{color: '#c96442'}}>online</Text>
+                ) : (
+                  <Text style={{color: '#ababab'}}>
+                    {chat && chat.user && formatTimestamp(chat.user.last_seen)}
+                  </Text>
+                )}
               </View>
             </Animated.View>
           </TouchableOpacity>
@@ -279,10 +310,11 @@ const styles = {
   },
   userDetails: {
     marginLeft: 12,
+    gap: 2,
   },
   userName: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
   },
   userStatus: {

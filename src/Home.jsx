@@ -491,6 +491,9 @@ function HomeScreen({navigation}) {
                       name={chat.user.display_name}
                       width={50}
                     />
+                    {chat.user.is_online && (
+                      <View style={styles.onlineIndicator} />
+                    )}
                     <View style={{justifyContent: 'center', gap: 5}}>
                       <Text style={{color: 'white', fontSize: 18}}>
                         {chat.user.display_name}
@@ -608,5 +611,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderTopColor: '#4A4F4B',
     borderTopWidth: 1,
+  },
+  onlineIndicator: {
+    backgroundColor: '#c96442',
+    width: 17,
+    height: 17,
+    borderRadius: 9,
+    position: 'absolute',
+    bottom: 0,
+    left: 35,
+    borderWidth: 2,
+    borderColor: '#141516',
   },
 });

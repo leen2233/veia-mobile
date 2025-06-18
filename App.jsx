@@ -47,6 +47,13 @@ function RootStack() {
     console.log('called');
     if (data.action == 'new_message') {
       dispatch(addMessageToChat(data.data.message, data.data.chat));
+    } else if (data.action == 'status_change') {
+      dispatch({
+        type: 'STATUS_CHANGE',
+        userId: data.data.user_id,
+        status: data.data.status,
+        last_seen: data.data.last_seen,
+      });
     }
   };
 

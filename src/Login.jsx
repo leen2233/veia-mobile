@@ -113,6 +113,7 @@ const LoginPage = ({navigation}) => {
           <Lock width={20} color={'#898f99'} style={{marginHorizontal: 2}} />
           <TextInput
             style={styles.textInput}
+            secureTextEntry={true}
             placeholder="Enter your password"
             placeholderTextColor={'#898f99'}
             value={password}
