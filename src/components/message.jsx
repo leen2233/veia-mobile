@@ -1,7 +1,22 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {parseISO, differenceInMinutes, format, isSameDay} from 'date-fns';
-import {StyleSheet, Text, View} from 'react-native';
-import {Check, CheckCheck, Reply} from 'lucide-react-native';
+import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {
+  Check,
+  CheckCheck,
+  Copy,
+  Edit,
+  Reply,
+  SquareDashed,
+  Trash2,
+} from 'lucide-react-native';
 import 'react-native-gesture-handler';
 
 import Animated, {
@@ -12,6 +27,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
+import Clipboard from '@react-native-clipboard/clipboard';
 
 const lightenColor = (hex, percent) => {
   let f = parseInt(hex.slice(1), 16),
@@ -40,6 +56,9 @@ const Message = ({
   otherBubbleColor = '#202324',
   fontSize,
 }) => {
+  const [isMenuVisible, setMenuVisible] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({x: 0, y: 0});
+
   const messageStyle = message.is_mine ? styles.myMessage : styles.otherMessage;
   const repliedStyle = message.is_mine
     ? styles.repliedMineStyle
@@ -64,6 +83,19 @@ const Message = ({
     })
     .simultaneousWithExternalGesture(true);
 
+  const shortPress = Gesture.Tap()
+    .shouldCancelWhenOutside(false)
+    .onEnd(event => {
+      runOnJS(setMenuPosition)({x: event.absoluteX, y: event.absoluteY});
+      runOnJS(setMenuVisible)(true);
+    });
+
+  const longPress = Gesture.LongPress()
+    .minDuration(250)
+    .onStart(() => {
+      console.log('long press');
+    });
+
   const animatedStyles = useAnimatedStyle(() => ({
     transform: [{translateX: offset.value}],
   }));
@@ -83,6 +115,14 @@ const Message = ({
     }
     return format(date, 'HH:mm');
   }
+
+  const copyToClipboard = async text => {
+    try {
+      await Clipboard.setString(text);
+    } catch (error) {
+      console.error('Copy failed:', error);
+    }
+  };
 
   const replyIconStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
@@ -106,89 +146,159 @@ const Message = ({
   });
 
   const formattedTime = formatTimestamp(message.time);
-  console.log(myBubbleColor);
+
+  const composed = Gesture.Exclusive(longPress, pan, shortPress);
 
   return (
-    <GestureDetector gesture={pan}>
-      <View style={{width: '100%'}}>
-        <Animated.View
-          style={[
-            styles.messageContainer,
-            messageStyle,
-            animatedStyles,
-            {
-              backgroundColor: message.is_mine
-                ? myBubbleColor
-                : otherBubbleColor,
-            },
-          ]}>
-          <View style={styles.contentContainer}>
-            <View style={styles.messageWrapper}>
-              {message.reply_to && (
-                <View
-                  style={[
-                    repliedStyle,
-                    {
-                      backgroundColor: message.is_mine
-                        ? lightenColor(myBubbleColor, 0.2)
-                        : lightenColor(otherBubbleColor, 0.2),
-                      borderLeftColor: message.is_mine
-                        ? lightenColor(myBubbleColor, -0.2)
-                        : lightenColor(otherBubbleColor, -0.2),
-                    },
-                  ]}>
-                  <Text style={{color: 'white', fontSize: fontSize - 2}}>
-                    {message.reply_to.text}
+    <>
+      <GestureDetector gesture={composed}>
+        <View style={{width: '100%'}}>
+          <Animated.View
+            style={[
+              styles.messageContainer,
+              messageStyle,
+              animatedStyles,
+              {
+                backgroundColor: message.is_mine
+                  ? myBubbleColor
+                  : otherBubbleColor,
+              },
+            ]}>
+            <View style={styles.contentContainer}>
+              <View style={styles.messageWrapper}>
+                {message.reply_to && (
+                  <View
+                    style={[
+                      repliedStyle,
+                      {
+                        backgroundColor: message.is_mine
+                          ? lightenColor(myBubbleColor, 0.2)
+                          : lightenColor(otherBubbleColor, 0.2),
+                        borderLeftColor: message.is_mine
+                          ? lightenColor(myBubbleColor, -0.2)
+                          : lightenColor(otherBubbleColor, -0.2),
+                      },
+                    ]}>
+                    <Text style={{color: 'white', fontSize: fontSize - 2}}>
+                      {message.reply_to.text}
+                    </Text>
+                  </View>
+                )}
+                <Text style={[styles.messageText, {fontSize: fontSize}]}>
+                  {message.text}
+                  <Text
+                    style={[
+                      styles.timestampPlaceholder,
+                      {fontSize: fontSize - 2},
+                    ]}>
+                    {'  '}
+                    {formattedTime}{' '}
+                    {message.status === 'sent' ? (
+                      <Check color={'transparent'} size={fontSize + 2} />
+                    ) : (
+                      message.status === 'read' && (
+                        <CheckCheck color={'transparent'} size={fontSize + 2} />
+                      )
+                    )}
                   </Text>
+                </Text>
+                <View style={styles.timestampOverlay}>
+                  <Text
+                    style={{
+                      color: '#CCCCCC',
+                      fontSize: fontSize - 2,
+                    }}>
+                    {formattedTime}{' '}
+                  </Text>
+                  {message.is_mine &&
+                    (message.status === 'sent' ? (
+                      <Check size={fontSize} color={'white'} />
+                    ) : (
+                      message.status === 'read' && (
+                        <CheckCheck
+                          size={fontSize}
+                          color={'white'}
+                          style={{backgroundColor: 'transparent'}}
+                        />
+                      )
+                    ))}
                 </View>
-              )}
-              <Text style={[styles.messageText, {fontSize: fontSize}]}>
-                {message.text}
-                <Text
-                  style={[
-                    styles.timestampPlaceholder,
-                    {fontSize: fontSize - 2},
-                  ]}>
-                  {'  '}
-                  {formattedTime}{' '}
-                  {message.status === 'sent' ? (
-                    <Check color={'transparent'} size={fontSize + 2} />
-                  ) : (
-                    message.status === 'read' && (
-                      <CheckCheck color={'transparent'} size={fontSize + 2} />
-                    )
-                  )}
-                </Text>
-              </Text>
-              <View style={styles.timestampOverlay}>
-                <Text
-                  style={{
-                    color: '#CCCCCC',
-                    fontSize: fontSize - 2,
-                  }}>
-                  {formattedTime}{' '}
-                </Text>
-                {message.is_mine &&
-                  (message.status === 'sent' ? (
-                    <Check size={fontSize} color={'white'} />
-                  ) : (
-                    message.status === 'read' && (
-                      <CheckCheck
-                        size={fontSize}
-                        color={'white'}
-                        style={{backgroundColor: 'transparent'}}
-                      />
-                    )
-                  ))}
               </View>
             </View>
+          </Animated.View>
+          <Animated.View style={[styles.replyIconContainer, replyIconStyle]}>
+            <Reply size={18} color="white" />
+          </Animated.View>
+        </View>
+      </GestureDetector>
+      <Modal
+        transparent
+        animationType="fade"
+        visible={isMenuVisible}
+        onRequestClose={() => setMenuVisible(false)}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setMenuVisible(false)}>
+          <View
+            style={[
+              styles.menuContainer,
+              {
+                top: menuPosition.y,
+                left: menuPosition.x,
+                transform: [
+                  {translateX: '-50%'}, // Adjust based on your menu width
+                  {translateY: '-50%'}, // Adjust based on your menu height
+                ],
+              },
+            ]}>
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                onReply(message);
+                setMenuVisible(false);
+              }}>
+              <Reply size={fontSize + 2} color="white" />
+              <Text style={[styles.menuText, {fontSize: fontSize}]}>Reply</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                copyToClipboard(message.text);
+                setMenuVisible(false);
+              }}>
+              <Copy size={fontSize + 2} color="white" />
+              <Text style={[styles.menuText, {fontSize: fontSize}]}>
+                Copy Text
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuRow}>
+              <SquareDashed size={fontSize + 2} color="white" />
+              <Text style={[styles.menuText, {fontSize: fontSize}]}>
+                Select
+              </Text>
+            </TouchableOpacity>
+            {message.is_mine && (
+              <>
+                <View style={styles.separator} />
+                <TouchableOpacity style={styles.menuRow}>
+                  <Edit size={fontSize + 2} color="white" />
+                  <Text style={[styles.menuText, {fontSize: fontSize}]}>
+                    Edit
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.menuRow}>
+                  <Trash2 size={fontSize + 2} color="#ff3b30" />
+                  <Text
+                    style={[styles.menuTextDestructive, {fontSize: fontSize}]}>
+                    Delete
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
-        </Animated.View>
-        <Animated.View style={[styles.replyIconContainer, replyIconStyle]}>
-          <Reply size={18} color="white" />
-        </Animated.View>
-      </View>
-    </GestureDetector>
+        </Pressable>
+      </Modal>
+    </>
   );
 };
 
@@ -262,5 +372,36 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderLeftColor: '#1a1a1a',
     borderLeftWidth: 5,
+  },
+  modalOverlay: {
+    flex: 1,
+  },
+  menuContainer: {
+    position: 'absolute',
+    backgroundColor: '#1c1c1e',
+    borderRadius: 14,
+    padding: 5,
+    minWidth: 160,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+  },
+  menuText: {
+    color: 'white',
+    fontSize: 16,
+    marginLeft: 15,
+  },
+  menuTextDestructive: {
+    color: '#ff3b30',
+    fontSize: 16,
+    marginLeft: 15,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#3a3a3c',
+    marginVertical: 4,
   },
 });

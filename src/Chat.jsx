@@ -158,7 +158,6 @@ const Chat = ({route, navigation}) => {
   useEffect(() => {
     if (replyingTo) {
       replyBarHeight.value = withTiming(50, {duration: 200});
-      scrollRef.current.scrollToEnd({animated: true});
     } else {
       replyBarHeight.value = withTiming(0, {duration: 200});
     }
@@ -188,10 +187,13 @@ const Chat = ({route, navigation}) => {
           <ScrollView
             style={styles.chatContainer}
             ref={scrollRef}
+            keyboardShouldPersistTaps="handled" // This is key
+            keyboardDismissMode="none"
             contentContainerStyle={{
               flexGrow: 1,
               justifyContent: 'flex-end',
               paddingBottom: 10,
+              paddingTop: 120,
             }}>
             {messages.map((message, index) => (
               <Message

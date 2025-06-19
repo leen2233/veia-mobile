@@ -25,6 +25,7 @@ import {
   ImageOff,
   ImagePlus,
   ImageUpscale,
+  ListRestart,
   Paintbrush,
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -439,6 +440,17 @@ const UISettings = ({navigation}) => {
               otherBubbleColor,
               setOtherBubbleColor,
             )}
+            <TouchableNativeFeedback
+              onPress={() => {
+                setMyBubbleColor('#c96442');
+                setOtherBubbleColor('#202324');
+              }}>
+              <View
+                style={[styles.nestedButton, {marginLeft: 0, marginTop: 5}]}>
+                <ListRestart size={20} color={'#c96442'} />
+                <Text style={styles.nestedButtonText}>Reset to defaults</Text>
+              </View>
+            </TouchableNativeFeedback>
           </View>
         )}
 
