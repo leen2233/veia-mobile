@@ -1,7 +1,9 @@
 import {
+  CheckLine,
   MessageCircleReply,
   Mic,
   Paperclip,
+  PenLine,
   Send,
   Smile,
   X,
@@ -38,9 +40,11 @@ const Chat = ({route, navigation}) => {
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [replyingTo, setReplyingTo] = useState('');
+  const [editingMessage, setEditingMessage] = useState(null);
   const scrollRef = useRef(null);
   const showSend = useSharedValue(inputValue.length > 0);
   const replyBarHeight = useSharedValue(0);
+  const editBarHeight = useSharedValue(0);
   const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
   const settings = useSelector(state => state.settings);
@@ -101,17 +105,30 @@ const Chat = ({route, navigation}) => {
   };
 
   const sendMessage = () => {
-    let data = {
-      action: 'new_message',
-      data: {
-        chat_id: chat.id,
-        text: inputValue,
-        reply_to: replyingTo ? replyingTo.id : null,
-      },
-    };
-    WebsocketService.send(data);
-    setInputValue('');
-    setReplyingTo(null);
+    if (editingMessage) {
+      let data = {
+        action: 'edit_message',
+        data: {
+          message_id: editingMessage.id,
+          text: inputValue,
+        },
+      };
+      WebsocketService.send(data);
+      setInputValue('');
+      setEditingMessage(null);
+    } else {
+      let data = {
+        action: 'new_message',
+        data: {
+          chat_id: chat.id,
+          text: inputValue,
+          reply_to: replyingTo ? replyingTo.id : null,
+        },
+      };
+      WebsocketService.send(data);
+      setInputValue('');
+      setReplyingTo(null);
+    }
   };
 
   useEffect(() => {
@@ -163,11 +180,30 @@ const Chat = ({route, navigation}) => {
     }
   }, [replyingTo]);
 
+  useEffect(() => {
+    if (editingMessage) {
+      editBarHeight.value = withTiming(50, {duration: 200});
+    } else {
+      editBarHeight.value = withTiming(0, {duration: 200});
+    }
+  }, [editingMessage]);
+
   const replyingToAnimatedStyle = useAnimatedStyle(() => {
     const borderHeight = interpolate(replyBarHeight.value, [0, 50], [0, 1]);
 
     return {
       height: replyBarHeight.value,
+      overflow: 'hidden',
+      borderTopWidth: borderHeight,
+      borderBottomWidth: borderHeight,
+    };
+  });
+
+  const editBarAnimatedStyle = useAnimatedStyle(() => {
+    const borderHeight = interpolate(editBarHeight.value, [0, 50], [0, 1]);
+
+    return {
+      height: editBarHeight.value,
       overflow: 'hidden',
       borderTopWidth: borderHeight,
       borderBottomWidth: borderHeight,
@@ -202,6 +238,10 @@ const Chat = ({route, navigation}) => {
                 onReply={message => {
                   setReplyingTo(message);
                 }}
+                onEdit={message => {
+                  setEditingMessage(message);
+                  setInputValue(message.text);
+                }}
                 myBubbleColor={settings.myBubbleColor}
                 otherBubbleColor={settings.otherBubbleColor}
                 fontSize={settings.fontSize}
@@ -227,6 +267,22 @@ const Chat = ({route, navigation}) => {
               </>
             )}
           </Animated.View>
+          <Animated.View style={[styles.replyingTo, editBarAnimatedStyle]}>
+            {editingMessage && (
+              <>
+                <PenLine color={'#c96442'} />
+                <Text style={{color: 'white', width: '80%'}} numberOfLines={1}>
+                  {editingMessage.text}
+                </Text>
+                <TouchableNativeFeedback
+                  onPress={() => {
+                    setEditingMessage(null);
+                  }}>
+                  <X color={'white'} />
+                </TouchableNativeFeedback>
+              </>
+            )}
+          </Animated.View>
           <View style={styles.inputContainer}>
             <TouchableNativeFeedback>
               <Smile color={'white'} />
@@ -241,7 +297,11 @@ const Chat = ({route, navigation}) => {
             <Animated.View style={sendStyle}>
               <TouchableNativeFeedback onPress={sendMessage}>
                 <View style={styles.sendButton}>
-                  <Send color={'white'} />
+                  {editingMessage ? (
+                    <CheckLine color={'white'} />
+                  ) : (
+                    <Send color={'white'} />
+                  )}
                 </View>
               </TouchableNativeFeedback>
             </Animated.View>

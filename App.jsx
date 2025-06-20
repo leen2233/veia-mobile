@@ -44,7 +44,6 @@ function RootStack() {
   const dispatch = useDispatch();
 
   const handleResponse = data => {
-    console.log('called');
     if (data.action == 'new_message') {
       dispatch(addMessageToChat(data.data.message, data.data.chat));
     } else if (data.action == 'status_change') {
@@ -53,6 +52,17 @@ function RootStack() {
         userId: data.data.user_id,
         status: data.data.status,
         last_seen: data.data.last_seen,
+      });
+    } else if (data.action == 'delete_message') {
+      dispatch({
+        type: 'DELETE_MESSAGE',
+        messageId: data.data.id,
+      });
+    } else if (data.action == 'edit_message') {
+      dispatch({
+        type: 'EDIT_MESSAGE',
+        messageId: data.data.id,
+        text: data.data.text,
       });
     }
   };

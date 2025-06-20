@@ -28,8 +28,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import Clipboard from '@react-native-clipboard/clipboard';
+import WebsocketService from '../lib/WebsocketService';
 
-const lightenColor = (hex, percent) => {
+const lightenColor = (hex, percent, opacity = 'ff') => {
   let f = parseInt(hex.slice(1), 16),
     t = percent < 0 ? 0 : 255,
     p = percent < 0 ? percent * -1 : percent,
@@ -45,13 +46,15 @@ const lightenColor = (hex, percent) => {
       (Math.round((t - B) * p) + B)
     )
       .toString(16)
-      .slice(1)
+      .slice(1) +
+    opacity
   );
 };
 
 const Message = ({
   message,
   onReply,
+  onEdit,
   myBubbleColor = '#c96442',
   otherBubbleColor = '#202324',
   fontSize,
@@ -145,6 +148,12 @@ const Message = ({
     };
   });
 
+  const deleteMessage = () => {
+    const data = {action: 'delete_message', data: {message_id: message.id}};
+    WebsocketService.send(data);
+    setMenuVisible(false);
+  };
+
   const formattedTime = formatTimestamp(message.time);
 
   const composed = Gesture.Exclusive(longPress, pan, shortPress);
@@ -152,7 +161,13 @@ const Message = ({
   return (
     <>
       <GestureDetector gesture={composed}>
-        <View style={{width: '100%'}}>
+        <View
+          style={{
+            width: '100%',
+            backgroundColor: isMenuVisible
+              ? lightenColor(myBubbleColor, 0.1, '44')
+              : 'transparent',
+          }}>
           <Animated.View
             style={[
               styles.messageContainer,
@@ -280,13 +295,20 @@ const Message = ({
             {message.is_mine && (
               <>
                 <View style={styles.separator} />
-                <TouchableOpacity style={styles.menuRow}>
+                <TouchableOpacity
+                  style={styles.menuRow}
+                  onPress={() => {
+                    onEdit(message);
+                    setMenuVisible(false);
+                  }}>
                   <Edit size={fontSize + 2} color="white" />
                   <Text style={[styles.menuText, {fontSize: fontSize}]}>
                     Edit
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.menuRow}>
+                <TouchableOpacity
+                  style={styles.menuRow}
+                  onPress={deleteMessage}>
                   <Trash2 size={fontSize + 2} color="#ff3b30" />
                   <Text
                     style={[styles.menuTextDestructive, {fontSize: fontSize}]}>

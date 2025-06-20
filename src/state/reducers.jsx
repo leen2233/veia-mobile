@@ -52,6 +52,28 @@ export const chatsReducer = (state = chats, action) => {
           data: [newChat, ...state.data],
         };
       }
+    case 'DELETE_MESSAGE':
+      return {
+        data: state.data.map(chat => ({
+          ...chat,
+          messages: chat.messages
+            ? chat.messages.filter(message => message.id !== action.messageId)
+            : [],
+        })),
+      };
+    case 'EDIT_MESSAGE':
+      return {
+        data: state.data.map(chat => ({
+          ...chat,
+          messages: chat.messages
+            ? chat.messages.map(message =>
+                message.id === action.messageId
+                  ? {...message, text: action.text}
+                  : message,
+              )
+            : [],
+        })),
+      };
     case 'STATUS_CHANGE':
       return {
         data: state.data.map(chat => ({
