@@ -27,6 +27,7 @@ import {
 import Avatar from './avatar';
 
 import {format, isToday, differenceInMinutes, parseISO} from 'date-fns';
+import {useSelector} from 'react-redux';
 
 function formatTimestamp(timestamp) {
   const date =
@@ -55,6 +56,8 @@ const {height: screenHeight} = Dimensions.get('window');
 
 const Header = ({top, navigation, chat}) => {
   const height = useSharedValue(top + 80);
+
+  const connectionStatus = useSelector(state => state.connectionStatus.state);
 
   const headerStyle = useAnimatedStyle(() => {
     return {
@@ -173,7 +176,9 @@ const Header = ({top, navigation, chat}) => {
                 <Text style={styles.userName}>
                   {chat && chat.user.display_name}
                 </Text>
-                {chat?.user?.is_online ? (
+                {connectionStatus ? (
+                  <Text style={{color: '#ababab'}}>connecting...</Text>
+                ) : chat?.user?.is_online ? (
                   <Text style={{color: '#c96442'}}>online</Text>
                 ) : (
                   <Text style={{color: '#ababab'}}>

@@ -63,7 +63,6 @@ const Chat = ({route, navigation}) => {
     const loadSettings = async () => {
       try {
         const savedSettings = await AsyncStorage.getItem('chat_settings');
-        console.log(savedSettings);
         if (savedSettings !== null) {
           dispatch({type: 'SET_SETTINGS', payload: JSON.parse(savedSettings)}); // Dispatch an action to set settings in Redux
         }
@@ -209,6 +208,22 @@ const Chat = ({route, navigation}) => {
       borderBottomWidth: borderHeight,
     };
   });
+
+  useEffect(() => {
+    const unreadMesages = messages.filter(
+      message => message.status != 'read' && !message.is_mine,
+    );
+    if (unreadMesages.length > 0) {
+      const message_ids = unreadMesages.map(message => message.id);
+      const data = {
+        action: 'read_message',
+        data: {
+          message_ids: message_ids,
+        },
+      };
+      WebsocketService.send(data);
+    }
+  }, [messages]);
 
   return (
     <View style={{flex: 1}}>

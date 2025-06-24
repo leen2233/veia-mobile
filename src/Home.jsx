@@ -268,7 +268,6 @@ function HomeScreen({navigation}) {
     if (!handlerAdded.current) {
       WebsocketService.addListener(handleResponse);
       handlerAdded.current = true;
-      console.log('added');
     }
 
     const backHandler = BackHandler.addEventListener(
@@ -289,7 +288,6 @@ function HomeScreen({navigation}) {
           if (!handlerAdded.current) {
             WebsocketService.addListener(handleResponse);
             handlerAdded.current = true;
-            console.log('added');
           }
           data = {action: 'authenticate', data: {access_token: accessToken}};
           WebsocketService.send(data);
@@ -301,7 +299,6 @@ function HomeScreen({navigation}) {
   }, [connectionStatus]);
 
   const handleResponse = async data => {
-    console.log('action.ty', data);
     if (data.action == 'authenticate') {
       if (!data.success) {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
@@ -408,7 +405,7 @@ function HomeScreen({navigation}) {
     lastScrollY.current = currentScrollY;
   };
 
-  console.log(chats);
+  
 
   return (
     <Reanimated.View

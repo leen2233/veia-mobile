@@ -1,3 +1,5 @@
+import {DrawerContentScrollView} from '@react-navigation/drawer';
+
 const connectionStatus = {state: true, isAuthenticated: false};
 const chats = {data: []};
 const user = {};
@@ -69,6 +71,19 @@ export const chatsReducer = (state = chats, action) => {
             ? chat.messages.map(message =>
                 message.id === action.messageId
                   ? {...message, text: action.text}
+                  : message,
+              )
+            : [],
+        })),
+      };
+    case 'READ_MESSAGE':
+      return {
+        data: state.data.map(chat => ({
+          ...chat,
+          messages: chat.messages
+            ? chat.messages.map(message =>
+                action.messageIds.includes(message.id)
+                  ? {...message, status: 'read'}
                   : message,
               )
             : [],

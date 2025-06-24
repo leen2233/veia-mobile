@@ -36,17 +36,18 @@ class WebSocketService {
 
     this.socket.addEventListener('close', () => {
       console.log('WebSocket closed');
-      this.statusCallback?.({state: true});
+      this.statusCallback?.({state: true, isAuthenticated: false});
     });
 
     this.socket.addEventListener('error', error => {
-      this.statusCallback?.({state: true});
+      this.statusCallback?.({state: true, isAuthenticated: false});
     });
   }
 
   send(data) {
     if (this.socket && this.socket.readyState === 1) {
       console.log('[SEND]', data);
+      console.log(this.socket, this.socket.readyState);
       this.socket.send(JSON.stringify(data));
     } else {
       console.log('Socket not ready');

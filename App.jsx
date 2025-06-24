@@ -64,6 +64,11 @@ function RootStack() {
         messageId: data.data.id,
         text: data.data.text,
       });
+    } else if (data.action == 'read_message') {
+      dispatch({
+        type: 'READ_MESSAGE',
+        messageIds: data.data.ids,
+      });
     }
   };
 
