@@ -1,14 +1,14 @@
 import HomeScreen from './src/Home';
 import DrawerContent from './src/Drawer';
 import ChatScreen from './src/Chat';
-import React, {useEffect} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {createStackNavigator} from '@react-navigation/stack';
 import {Animated, StatusBar} from 'react-native';
 import {createDrawerNavigator} from '@react-navigation/drawer';
 import WebsocketService from './src/lib/WebsocketService';
-import {Provider, useDispatch} from 'react-redux';
+import {Provider, useDispatch, useSelector} from 'react-redux';
 import {store} from './src/state/store';
 import {addMessageToChat, setConnectionStatus} from './src/state/actions';
 import LoginPage from './src/Login';
@@ -38,35 +38,39 @@ function HomeDrawer() {
 
 function RootStack() {
   const dispatch = useDispatch();
+  // const user = useSelector(state => state.user);
 
-  const handleResponse = data => {
-    if (data.action == 'new_message') {
-      dispatch(addMessageToChat(data.data.message, data.data.chat));
-    } else if (data.action == 'status_change') {
-      dispatch({
-        type: 'STATUS_CHANGE',
-        userId: data.data.user_id,
-        status: data.data.status,
-        last_seen: data.data.last_seen,
-      });
-    } else if (data.action == 'delete_message') {
-      dispatch({
-        type: 'DELETE_MESSAGE',
-        messageId: data.data.id,
-      });
-    } else if (data.action == 'edit_message') {
-      dispatch({
-        type: 'EDIT_MESSAGE',
-        messageId: data.data.id,
-        text: data.data.text,
-      });
-    } else if (data.action == 'read_message') {
-      dispatch({
-        type: 'READ_MESSAGE',
-        messageIds: data.data.ids,
-      });
-    }
-  };
+  const handleResponse = useCallback(
+    data => {
+      if (data.action == 'new_message') {
+        dispatch(addMessageToChat(data.data.message));
+      } else if (data.action == 'status_change') {
+        dispatch({
+          type: 'STATUS_CHANGE',
+          userId: data.data.user_id,
+          status: data.data.status,
+          last_seen: data.data.last_seen,
+        });
+      } else if (data.action == 'delete_message') {
+        dispatch({
+          type: 'DELETE_MESSAGE',
+          messageId: data.data.id,
+        });
+      } else if (data.action == 'edit_message') {
+        dispatch({
+          type: 'EDIT_MESSAGE',
+          messageId: data.data.id,
+          text: data.data.text,
+        });
+      } else if (data.action == 'read_message') {
+        dispatch({
+          type: 'READ_MESSAGE',
+          messageIds: data.data.ids,
+        });
+      }
+    },
+    [dispatch],
+  );
 
   useEffect(() => {
     WebsocketService.setStatusCallback(status => {

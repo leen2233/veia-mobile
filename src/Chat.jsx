@@ -31,7 +31,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Header from './components/chatHeader';
 import WebsocketService from './lib/WebsocketService';
 import {useDispatch, useSelector} from 'react-redux';
-import {addChat, setMessages} from './state/actions';
+import {addChat, setMessages, setMessagesIfNotExists} from './state/actions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Chat = ({route, navigation}) => {
@@ -95,6 +95,17 @@ const Chat = ({route, navigation}) => {
     scrollRef.current.scrollToEnd({animated: true});
   }, [chat?.messages]);
 
+  const handleScroll = event => {
+    const {contentOffset} = event.nativeEvent;
+    if (contentOffset.y === 0 && chat?.hasMore) {
+      let dataToSend = {
+        action: 'get_messages',
+        data: {chat_id: chat.id, last_message: chat.messages[0].id},
+      };
+      WebsocketService.send(dataToSend);
+    }
+  };
+
   const handleResponse = data => {
     if (data.action == 'get_messages') {
       if (!chat) {
@@ -105,7 +116,9 @@ const Chat = ({route, navigation}) => {
         ...message,
         is_mine: message.sender === user.id,
       }));
-      dispatch(setMessages(messages, chatId.current));
+      dispatch(
+        setMessagesIfNotExists(messages, chatId.current, data.data.has_more),
+      );
     }
   };
 
@@ -246,6 +259,7 @@ const Chat = ({route, navigation}) => {
             ref={scrollRef}
             keyboardShouldPersistTaps="handled" // This is key
             keyboardDismissMode="none"
+            onScroll={handleScroll}
             contentContainerStyle={{
               flexGrow: 1,
               justifyContent: 'flex-end',

@@ -273,7 +273,6 @@ function HomeScreen({navigation}) {
   useEffect(() => {
     const loadData = async () => {
       const data = await AsyncStorage.getItem('savedChats');
-      console.log('data got ', data);
       if (data) {
         const dataParsed = JSON.parse(data);
         dispatch(setChats(dataParsed));
@@ -329,8 +328,12 @@ function HomeScreen({navigation}) {
       } else {
         dispatch(setConnectionStatus({isAuthenticated: true}));
         dispatch(setUser(data.data.user));
-        let dataToSend = {action: 'get_chats'};
-        WebsocketService.send(dataToSend);
+        const savedChats = await AsyncStorage.getItem('savedChats');
+        if (savedChats) {
+        } else {
+          let dataToSend = {action: 'get_chats'};
+          WebsocketService.send(dataToSend);
+        }
       }
     } else if (data.action == 'refresh_access_token') {
       if (data.success) {
@@ -492,7 +495,8 @@ function HomeScreen({navigation}) {
             chats.map(chat => (
               <TouchableNativeFeedback
                 key={chat.id}
-                onPress={() => navigation.navigate('Chat', {chat: chat})}>
+                onPress={() => navigation.navigate('Chat', {chat: chat})}
+                onLongPress={() => console.log('Long pressed:', chat.messages)}>
                 <View style={styles.chatItem}>
                   <View
                     style={{

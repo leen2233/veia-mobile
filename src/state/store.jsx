@@ -1,4 +1,4 @@
-import {createStore, combineReducers} from 'redux';
+import {createStore, combineReducers, applyMiddleware} from 'redux';
 
 import {
   chatsReducer,
@@ -6,6 +6,7 @@ import {
   settingsReducer,
   userReducer,
 } from './reducers';
+import {thunk} from 'redux-thunk';
 
 const rootReducer = combineReducers({
   connectionStatus: connectionStatusReducer,
@@ -14,4 +15,4 @@ const rootReducer = combineReducers({
   settings: settingsReducer,
 });
 
-export const store = createStore(rootReducer);
+export const store = createStore(rootReducer, applyMiddleware(thunk));

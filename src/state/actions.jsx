@@ -19,20 +19,35 @@ export const addChat = state => {
   };
 };
 
-export const setMessages = (state, chatId) => {
+export const setMessages = (state, chatId, hasMore) => {
   return {
     type: 'SET_CHAT_MESSAGES',
     payload: state,
     chatId: chatId,
+    hasMore: hasMore,
   };
 };
 
-export const addMessageToChat = (state, messageChat) => {
+export const setMessagesIfNotExists = (state, chatId, hasMore) => {
   return {
-    type: 'ADD_MESSAGE_TO_CHAT',
+    type: 'SET_CHAT_MESSAGES_IF_NOT_EXISTS',
     payload: state,
-    chat: messageChat,
+    chatId: chatId,
+    hasMore: hasMore,
   };
+};
+
+export const addMessageToChat = message => (dispatch, getState) => {
+  const {user} = getState();
+  const is_mine = user ? message.sender === user.id : false;
+
+  dispatch({
+    type: 'ADD_MESSAGE_TO_CHAT',
+    payload: {
+      ...message,
+      is_mine,
+    },
+  });
 };
 
 export const setUser = state => {

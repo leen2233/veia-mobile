@@ -29,18 +29,49 @@ export const chatsReducer = (state = chats, action) => {
       return {
         data: state.data.map(chat =>
           chat.id === action.chatId
-            ? {...chat, messages: action.payload}
+            ? {...chat, messages: action.payload, hasMore: action.hasMore}
             : chat,
         ),
       };
+    case 'SET_CHAT_MESSAGES_IF_NOT_EXISTS':
+      // Only set messages if they don't already exist in the chat
+      return {
+        data: state.data.map(chat => {
+          if (chat.id === action.chatId) {
+            const existingMessages = chat.messages || [];
+            const newMessages = action.payload.filter(
+              message =>
+                !existingMessages.some(
+                  existingMessage => existingMessage.id === message.id,
+                ),
+            );
+            return {
+              ...chat,
+              messages: [...existingMessages, ...newMessages].sort(
+                (a, b) => a.time - b.time,
+              ),
+              hasMore: action.hasMore,
+            };
+          }
+          return chat;
+        }),
+      };
     case 'ADD_MESSAGE_TO_CHAT':
-      const chatExists = state.data.some(chat => chat.id === action.chat.id);
+      const chatExists = state.data.some(
+        chat => chat.id === action.payload.chat_id,
+      );
+
+      let message = {
+        ...action.payload,
+        // is_mine: action.payload.sender === action.userId,
+      };
+      console.log(message, action);
 
       if (chatExists) {
         return {
           data: state.data.map(chat =>
-            chat.id === action.chat.id
-              ? {...chat, messages: [...(chat.messages || []), action.payload]}
+            chat.id === action.payload.chat_id
+              ? {...chat, messages: [...(chat.messages || []), message]}
               : chat,
           ),
         };
