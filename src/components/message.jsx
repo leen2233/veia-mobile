@@ -86,8 +86,9 @@ const Message = ({
     })
     .simultaneousWithExternalGesture(true);
 
-  const shortPress = Gesture.Tap()
-    .shouldCancelWhenOutside(false)
+  const tapGesture = Gesture.Tap()
+    .numberOfTaps(1)
+    .maxDuration(250) // Quick tap
     .onEnd(event => {
       runOnJS(setMenuPosition)({x: event.absoluteX, y: event.absoluteY});
       runOnJS(setMenuVisible)(true);
@@ -156,7 +157,7 @@ const Message = ({
 
   const formattedTime = formatTimestamp(message.time);
 
-  const composed = Gesture.Exclusive(longPress, pan, shortPress);
+  const composed = Gesture.Exclusive(longPress, pan, tapGesture);
 
   return (
     <>

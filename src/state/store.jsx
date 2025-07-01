@@ -1,4 +1,5 @@
 import {createStore, combineReducers} from 'redux';
+
 import {
   chatsReducer,
   connectionStatusReducer,
@@ -13,5 +14,4 @@ const rootReducer = combineReducers({
   settings: settingsReducer,
 });
 
-const store = createStore(rootReducer);
-export default store;
+export const store = createStore(rootReducer);

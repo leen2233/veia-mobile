@@ -41,7 +41,6 @@ const Header = ({navigation, top, isSearchOpen, setIsSearchOpen}) => {
   const [searchText, setSearchText] = useState('');
   const searchInputRef = useRef();
 
-  // Animation values
   const bounceValue = useSharedValue(0);
   const fadeValue = useSharedValue(1);
   const scaleValue = useSharedValue(1);
@@ -265,6 +264,26 @@ function HomeScreen({navigation}) {
   };
 
   useEffect(() => {
+    if (chats.length > 0) {
+      AsyncStorage.setItem('savedChats', JSON.stringify(chats));
+      console.log('saved data', chats);
+    }
+  }, [chats]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const data = await AsyncStorage.getItem('savedChats');
+      console.log('data got ', data);
+      if (data) {
+        const dataParsed = JSON.parse(data);
+        dispatch(setChats(dataParsed));
+      }
+    };
+
+    loadData();
+  }, []);
+
+  useEffect(() => {
     if (!handlerAdded.current) {
       WebsocketService.addListener(handleResponse);
       handlerAdded.current = true;
@@ -404,8 +423,6 @@ function HomeScreen({navigation}) {
 
     lastScrollY.current = currentScrollY;
   };
-
-  
 
   return (
     <Reanimated.View

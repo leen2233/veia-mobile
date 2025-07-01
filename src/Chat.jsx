@@ -36,6 +36,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Chat = ({route, navigation}) => {
   const chats = useSelector(state => state.chats);
+  const user = useSelector(state => state.user);
   const [chat, setChat] = useState(null); // useSelector(state => state.chats.,);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -75,6 +76,7 @@ const Chat = ({route, navigation}) => {
 
   useEffect(() => {
     if (chat && !chat.messages) {
+      console.log(chat, chat.messages);
       let data = {action: 'get_messages', data: {chat_id: chat.id}};
       WebsocketService.send(data);
     } else if (route.params.user) {
@@ -99,7 +101,11 @@ const Chat = ({route, navigation}) => {
         dispatch(addChat(data.data.chat));
       }
       chatId.current = data.data.chat.id;
-      dispatch(setMessages(data.data.results, chatId.current));
+      const messages = data.data.results.map(message => ({
+        ...message,
+        is_mine: message.sender === user.id,
+      }));
+      dispatch(setMessages(messages, chatId.current));
     }
   };
 

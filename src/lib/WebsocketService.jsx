@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReconnectingWebSocket from 'react-native-reconnecting-websocket';
 
 class WebSocketService {
@@ -31,7 +30,7 @@ class WebSocketService {
 
     this.socket.addEventListener('open', () => {
       console.log('WebSocket connected');
-      this.statusCallback?.({state: false});
+      this.statusCallback?.({state: false, isAuthenticated: false});
     });
 
     this.socket.addEventListener('close', () => {
@@ -47,7 +46,6 @@ class WebSocketService {
   send(data) {
     if (this.socket && this.socket.readyState === 1) {
       console.log('[SEND]', data);
-      console.log(this.socket, this.socket.readyState);
       this.socket.send(JSON.stringify(data));
     } else {
       console.log('Socket not ready');

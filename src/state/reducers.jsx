@@ -1,5 +1,3 @@
-import {DrawerContentScrollView} from '@react-navigation/drawer';
-
 const connectionStatus = {state: true, isAuthenticated: false};
 const chats = {data: []};
 const user = {};
@@ -17,9 +15,10 @@ export const connectionStatusReducer = (state = connectionStatus, action) => {
 };
 
 export const chatsReducer = (state = chats, action) => {
+  // console.log('Chats reducer:', action.type, state);
   switch (action.type) {
     case 'SET_CHATS':
-      return {data: action.payload};
+      return {...state, data: action.payload};
     case 'ADD_CHAT':
       return {
         data: state.data.some(chat => chat.id === action.payload.id)

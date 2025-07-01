@@ -9,12 +9,8 @@ import {Animated, StatusBar} from 'react-native';
 import {createDrawerNavigator} from '@react-navigation/drawer';
 import WebsocketService from './src/lib/WebsocketService';
 import {Provider, useDispatch} from 'react-redux';
-import store from './src/state/store';
-import {
-  addMessageToChat,
-  setConnectionStatus,
-  setUser,
-} from './src/state/actions';
+import {store} from './src/state/store';
+import {addMessageToChat, setConnectionStatus} from './src/state/actions';
 import LoginPage from './src/Login';
 import RegisterPage from './src/Register';
 import EditProfile from './src/EditProfile';
