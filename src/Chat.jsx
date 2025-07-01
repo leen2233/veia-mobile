@@ -238,6 +238,7 @@ const Chat = ({route, navigation}) => {
         action: 'read_message',
         data: {
           message_ids: message_ids,
+          chat_id: chat.id,
         },
       };
       WebsocketService.send(data);

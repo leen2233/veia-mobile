@@ -16,6 +16,7 @@ import RegisterPage from './src/Register';
 import EditProfile from './src/EditProfile';
 import SettingsScreen from './src/Settings';
 import UISettings from './src/settings/UI';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -42,31 +43,58 @@ function RootStack() {
 
   const handleResponse = useCallback(
     data => {
-      if (data.action == 'new_message') {
+      if (data.action === 'new_message') {
         dispatch(addMessageToChat(data.data.message));
-      } else if (data.action == 'status_change') {
+      } else if (data.action === 'status_change') {
         dispatch({
           type: 'STATUS_CHANGE',
           userId: data.data.user_id,
           status: data.data.status,
           last_seen: data.data.last_seen,
         });
-      } else if (data.action == 'delete_message') {
+      } else if (data.action === 'delete_message') {
         dispatch({
           type: 'DELETE_MESSAGE',
-          messageId: data.data.id,
+          messageId: data.data.message_id,
+          chatId: data.data.chat_id,
         });
-      } else if (data.action == 'edit_message') {
+      } else if (data.action === 'edit_message') {
         dispatch({
           type: 'EDIT_MESSAGE',
-          messageId: data.data.id,
+          messageId: data.data.message_id,
+          chatId: data.data.chat_id,
           text: data.data.text,
         });
-      } else if (data.action == 'read_message') {
+      } else if (data.action === 'read_message') {
         dispatch({
           type: 'READ_MESSAGE',
-          messageIds: data.data.ids,
+          messageIds: data.data.message_ids,
+          chatId: data.data.chat_id,
         });
+      } else if (data.action === 'get_updates') {
+        console.log(data.data.updates);
+        const updates = data.data.updates;
+        if (updates) {
+          updates.forEach(update => {
+            if (update.type === 'new_message') {
+              dispatch(addMessageToChat(update.body.message));
+            } else if (update.type === 'edit_message') {
+              dispatch({
+                type: 'EDIT_MESSAGE',
+                messageId: update.body.message_id,
+                chatId: update.body.chat_id,
+                text: update.body.text,
+              });
+            } else if (update.type === 'delete_message') {
+              dispatch({
+                type: 'DELETE_MESSAGE',
+                messageId: update.body.message_id,
+                chatId: update.body.chat_id,
+              });
+            }
+          });
+        }
+        AsyncStorage.setItem('lastUpdatedTime', (Date.now() / 1000).toString());
       }
     },
     [dispatch],

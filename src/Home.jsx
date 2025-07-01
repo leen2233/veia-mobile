@@ -245,6 +245,7 @@ function HomeScreen({navigation}) {
   const progress = useDrawerProgress();
   const dispatch = useDispatch();
 
+  const loadedRef = useRef(false);
   const handlerAdded = useRef(false);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -265,7 +266,12 @@ function HomeScreen({navigation}) {
 
   useEffect(() => {
     if (chats.length > 0) {
+      if (!loadedRef.current) {
+        loadedRef.current = true;
+        return;
+      }
       AsyncStorage.setItem('savedChats', JSON.stringify(chats));
+      AsyncStorage.setItem('lastUpdatedTime', (Date.now() / 1000).toString());
       console.log('saved data', chats);
     }
   }, [chats]);
@@ -330,6 +336,14 @@ function HomeScreen({navigation}) {
         dispatch(setUser(data.data.user));
         const savedChats = await AsyncStorage.getItem('savedChats');
         if (savedChats) {
+          const lastUpdatedTime = parseInt(
+            await AsyncStorage.getItem('lastUpdatedTime'),
+          );
+          let dataToSend = {
+            action: 'get_updates',
+            data: {last_time: lastUpdatedTime},
+          };
+          WebsocketService.send(dataToSend);
         } else {
           let dataToSend = {action: 'get_chats'};
           WebsocketService.send(dataToSend);

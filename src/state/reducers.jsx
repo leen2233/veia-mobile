@@ -86,38 +86,52 @@ export const chatsReducer = (state = chats, action) => {
       }
     case 'DELETE_MESSAGE':
       return {
-        data: state.data.map(chat => ({
-          ...chat,
-          messages: chat.messages
-            ? chat.messages.filter(message => message.id !== action.messageId)
-            : [],
-        })),
+        data: state.data.map(chat =>
+          chat.id === action.chatId
+            ? {
+                ...chat,
+                messages: chat.messages
+                  ? chat.messages.filter(
+                      message => message.id !== action.messageId,
+                    )
+                  : [],
+              }
+            : chat,
+        ),
       };
     case 'EDIT_MESSAGE':
       return {
-        data: state.data.map(chat => ({
-          ...chat,
-          messages: chat.messages
-            ? chat.messages.map(message =>
-                message.id === action.messageId
-                  ? {...message, text: action.text}
-                  : message,
-              )
-            : [],
-        })),
+        data: state.data.map(chat =>
+          chat.id === action.chatId
+            ? {
+                ...chat,
+                messages: chat.messages
+                  ? chat.messages.map(message =>
+                      message.id === action.messageId
+                        ? {...message, text: action.text}
+                        : message,
+                    )
+                  : [],
+              }
+            : chat,
+        ),
       };
     case 'READ_MESSAGE':
       return {
-        data: state.data.map(chat => ({
-          ...chat,
-          messages: chat.messages
-            ? chat.messages.map(message =>
-                action.messageIds.includes(message.id)
-                  ? {...message, status: 'read'}
-                  : message,
-              )
-            : [],
-        })),
+        data: state.data.map(chat =>
+          chat.id === action.chatId
+            ? {
+                ...chat,
+                messages: chat.messages
+                  ? chat.messages.map(message =>
+                      action.messageIds.includes(message.id)
+                        ? {...message, status: 'read'}
+                        : message,
+                    )
+                  : [],
+              }
+            : chat,
+        ),
       };
     case 'STATUS_CHANGE':
       return {
