@@ -537,7 +537,11 @@ function HomeScreen({navigation}) {
                       </Text>
                     </View>
                   </View>
-                  <View style={{alignItems: 'center', gap: 8}}>
+                  <View
+                    style={{
+                      alignItems: 'center',
+                      gap: 8,
+                    }}>
                     <Text style={{color: '#ababab'}}>
                       {formatTimestamp(chat.updated_at)}
                     </Text>
@@ -611,8 +615,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     textAlign: 'center',
-    verticalAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 25,
     fontSize: 12,
     fontWeight: 'bold',
   },

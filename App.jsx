@@ -66,13 +66,13 @@ function RootStack() {
           text: data.data.text,
         });
       } else if (data.action === 'read_message') {
+        console.log('read message called', data.data);
         dispatch({
           type: 'READ_MESSAGE',
           messageIds: data.data.message_ids,
           chatId: data.data.chat_id,
         });
       } else if (data.action === 'get_updates') {
-        console.log(data.data.updates);
         const updates = data.data.updates;
         if (updates) {
           updates.forEach(update => {

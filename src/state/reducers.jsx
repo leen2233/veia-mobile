@@ -29,7 +29,14 @@ export const chatsReducer = (state = chats, action) => {
       return {
         data: state.data.map(chat =>
           chat.id === action.chatId
-            ? {...chat, messages: action.payload, hasMore: action.hasMore}
+            ? {
+                ...chat,
+                messages: action.payload,
+                hasMore: action.hasMore,
+                unread_count: action.payload.filter(
+                  m => m.status !== 'read' && !m.is_mine,
+                ).length,
+              }
             : chat,
         ),
       };
@@ -51,6 +58,9 @@ export const chatsReducer = (state = chats, action) => {
                 (a, b) => a.time - b.time,
               ),
               hasMore: action.hasMore,
+              unread_count: action.payload.filter(
+                m => m.status !== 'read' && !m.is_mine,
+              ).length,
             };
           }
           return chat;
@@ -71,7 +81,13 @@ export const chatsReducer = (state = chats, action) => {
         return {
           data: state.data.map(chat =>
             chat.id === action.payload.chat_id
-              ? {...chat, messages: [...(chat.messages || []), message]}
+              ? {
+                  ...chat,
+                  messages: [...(chat.messages || []), message],
+                  unread_count:
+                    (chat.unread_count || 0) +
+                    (message.status !== 'read' && !message.is_mine ? 1 : 0),
+                }
               : chat,
           ),
         };
@@ -129,6 +145,15 @@ export const chatsReducer = (state = chats, action) => {
                         : message,
                     )
                   : [],
+                unread_count: chat.unread_count
+                  ? chat.unread_count -
+                    chat.messages.filter(
+                      m =>
+                        action.messageIds.includes(m.id) &&
+                        m.status !== 'read' &&
+                        !m.is_mine,
+                    ).length
+                  : 0,
               }
             : chat,
         ),
