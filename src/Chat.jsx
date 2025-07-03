@@ -17,6 +17,7 @@ import {
   TextInput,
   TouchableNativeFeedback,
   View,
+  Platform,
 } from 'react-native';
 import {ScrollView} from 'react-native-gesture-handler';
 import Animated, {
@@ -24,8 +25,9 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
+  runOnJS,
 } from 'react-native-reanimated';
-import {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef, useState, useMemo, useCallback} from 'react';
 import Message from './components/message';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Header from './components/chatHeader';
@@ -34,24 +36,260 @@ import {useDispatch, useSelector} from 'react-redux';
 import {addChat, setMessages, setMessagesIfNotExists} from './state/actions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const formatMessageDate = timestamp => {
+  const messageDate =
+    typeof timestamp === 'string'
+      ? parseISO(timestamp)
+      : new Date(timestamp < 1e12 ? timestamp * 1000 : timestamp);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const messageDateOnly = new Date(
+    messageDate.getFullYear(),
+    messageDate.getMonth(),
+    messageDate.getDate(),
+  );
+  const todayOnly = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+  const yesterdayOnly = new Date(
+    yesterday.getFullYear(),
+    yesterday.getMonth(),
+    yesterday.getDate(),
+  );
+
+  if (messageDateOnly.getTime() === todayOnly.getTime()) {
+    return 'Today';
+  } else if (messageDateOnly.getTime() === yesterdayOnly.getTime()) {
+    return 'Yesterday';
+  } else {
+    return messageDate.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+};
+
+const processMessagesWithDates = messages => {
+  if (!messages || messages.length === 0) return [];
+
+  const processedMessages = [];
+  let lastDate = null;
+
+  messages.forEach((message, index) => {
+    const messageDate = new Date(message.time * 1000);
+    const currentDateString = messageDate.toDateString();
+
+    if (lastDate !== currentDateString) {
+      processedMessages.push({
+        type: 'date_separator',
+        id: `date_${currentDateString}`,
+        date: formatMessageDate(message.time),
+        timestamp: messageDate,
+        originalIndex: index,
+      });
+      lastDate = currentDateString;
+    }
+
+    processedMessages.push({
+      ...message,
+      type: 'message',
+      messageDate: formatMessageDate(message.time),
+      originalIndex: index,
+    });
+  });
+
+  return processedMessages;
+};
+
+const findTopVisibleMessageWithBinarySearch = (
+  processedMessages,
+  messageLayouts,
+  targetY,
+) => {
+  if (!processedMessages.length) return '';
+
+  let left = 0;
+  let right = processedMessages.length - 1;
+  let result = null;
+
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    const item = processedMessages[mid];
+    const itemId = item.id || mid;
+    const layout = messageLayouts[itemId];
+
+    if (!layout) {
+      break;
+    }
+
+    if (layout.y <= targetY && layout.y + layout.height > targetY) {
+      result = item;
+      break;
+    } else if (layout.y > targetY) {
+      right = mid - 1;
+    } else {
+      left = mid + 1;
+    }
+  }
+
+  if (result) {
+    return result.type === 'message' ? result.messageDate : result.date;
+  }
+
+  const firstMessage = processedMessages.find(item => item.type === 'message');
+  return firstMessage ? firstMessage.messageDate : '';
+};
+
+const DateSeparator = React.memo(({date}) => (
+  <View style={styles.dateSeparator}>
+    <View style={styles.dateSeparatorLine} />
+    <Text style={styles.dateSeparatorText}>{date}</Text>
+    <View style={styles.dateSeparatorLine} />
+  </View>
+));
+
+const StickyDateHeader = React.memo(({currentDate, isVisible}) => {
+  const translateY = useSharedValue(isVisible ? 0 : -50);
+  const opacity = useSharedValue(isVisible ? 1 : 0);
+
+  useEffect(() => {
+    translateY.value = withTiming(isVisible ? 0 : -50, {duration: 200});
+    opacity.value = withTiming(isVisible ? 1 : 0, {duration: 200});
+  }, [isVisible]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{translateY: translateY.value}],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View style={[styles.stickyDateHeader, animatedStyle]}>
+      <Text style={styles.stickyDateText}>{currentDate}</Text>
+    </Animated.View>
+  );
+});
+
 const Chat = ({route, navigation}) => {
   const chats = useSelector(state => state.chats);
   const user = useSelector(state => state.user);
-  const [chat, setChat] = useState(null); // useSelector(state => state.chats.,);
+  const settings = useSelector(state => state.settings);
+
+  const [chat, setChat] = useState(null);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [replyingTo, setReplyingTo] = useState('');
   const [editingMessage, setEditingMessage] = useState(null);
+  const [currentTopDate, setCurrentTopDate] = useState('');
+  const [showStickyDate, setShowStickyDate] = useState(false);
+  const [messageLayouts, setMessageLayouts] = useState({});
+
   const scrollRef = useRef(null);
+  const stickyDateTimeoutRef = useRef(null);
+  const lastScrollYRef = useRef(0);
   const showSend = useSharedValue(inputValue.length > 0);
   const replyBarHeight = useSharedValue(0);
   const editBarHeight = useSharedValue(0);
   const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
-  const settings = useSelector(state => state.settings);
 
   const chatId = useRef(route.params.chat?.id);
   const messages = chat?.messages || [];
+
+  const processedMessages = useMemo(
+    () => processMessagesWithDates(messages),
+    [messages],
+  );
+
+  const throttledScrollHandler = useCallback(
+    (() => {
+      let timeoutId = null;
+      return event => {
+        const {contentOffset} = event.nativeEvent;
+        const currentScrollY = contentOffset.y;
+
+        if (Math.abs(currentScrollY - lastScrollYRef.current) < 10) {
+          return;
+        }
+        lastScrollYRef.current = currentScrollY;
+
+        // Handle load more messages
+        if (currentScrollY === 0 && chat?.hasMore) {
+          let dataToSend = {
+            action: 'get_messages',
+            data: {chat_id: chat.id, last_message: chat.messages[0].id},
+          };
+          WebsocketService.send(dataToSend);
+        }
+
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+
+        timeoutId = setTimeout(() => {
+          const headerHeight = 120;
+          const targetY = currentScrollY + headerHeight + 50;
+
+          const topDate = findTopVisibleMessageWithBinarySearch(
+            processedMessages,
+            messageLayouts,
+            targetY,
+          );
+
+          if (topDate && topDate !== currentTopDate) {
+            setCurrentTopDate(topDate);
+            setShowStickyDate(true);
+          }
+        }, 50);
+      };
+    })(),
+    [
+      processedMessages,
+      messageLayouts,
+      currentTopDate,
+      chat?.hasMore,
+      chat?.id,
+      chat?.messages,
+    ],
+  );
+
+  const onMessageLayout = useCallback(
+    (() => {
+      let timeoutId = null;
+      const pendingUpdates = {};
+
+      return (event, itemId) => {
+        const {layout} = event.nativeEvent;
+        pendingUpdates[itemId] = layout;
+
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+
+        timeoutId = setTimeout(() => {
+          setMessageLayouts(prev => ({
+            ...prev,
+            ...pendingUpdates,
+          }));
+          Object.keys(pendingUpdates).forEach(
+            key => delete pendingUpdates[key],
+          );
+        }, 16);
+      };
+    })(),
+    [],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (stickyDateTimeoutRef.current) {
+        clearTimeout(stickyDateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     WebsocketService.addListener(handleResponse);
@@ -65,7 +303,7 @@ const Chat = ({route, navigation}) => {
       try {
         const savedSettings = await AsyncStorage.getItem('chat_settings');
         if (savedSettings !== null) {
-          dispatch({type: 'SET_SETTINGS', payload: JSON.parse(savedSettings)}); // Dispatch an action to set settings in Redux
+          dispatch({type: 'SET_SETTINGS', payload: JSON.parse(savedSettings)});
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -76,7 +314,6 @@ const Chat = ({route, navigation}) => {
 
   useEffect(() => {
     if (chat && !chat.messages) {
-      console.log(chat, chat.messages);
       let data = {action: 'get_messages', data: {chat_id: chat.id}};
       WebsocketService.send(data);
     } else if (route.params.user) {
@@ -92,37 +329,29 @@ const Chat = ({route, navigation}) => {
   }, [chats]);
 
   useEffect(() => {
-    scrollRef.current.scrollToEnd({animated: true});
+    scrollRef.current?.scrollToEnd({animated: true});
   }, [chat?.messages]);
 
-  const handleScroll = event => {
-    const {contentOffset} = event.nativeEvent;
-    if (contentOffset.y === 0 && chat?.hasMore) {
-      let dataToSend = {
-        action: 'get_messages',
-        data: {chat_id: chat.id, last_message: chat.messages[0].id},
-      };
-      WebsocketService.send(dataToSend);
-    }
-  };
-
-  const handleResponse = data => {
-    if (data.action == 'get_messages') {
-      if (!chat) {
-        dispatch(addChat(data.data.chat));
+  const handleResponse = useCallback(
+    data => {
+      if (data.action == 'get_messages') {
+        if (!chat) {
+          dispatch(addChat(data.data.chat));
+        }
+        chatId.current = data.data.chat.id;
+        const messages = data.data.results.map(message => ({
+          ...message,
+          is_mine: message.sender === user.id,
+        }));
+        dispatch(
+          setMessagesIfNotExists(messages, chatId.current, data.data.has_more),
+        );
       }
-      chatId.current = data.data.chat.id;
-      const messages = data.data.results.map(message => ({
-        ...message,
-        is_mine: message.sender === user.id,
-      }));
-      dispatch(
-        setMessagesIfNotExists(messages, chatId.current, data.data.has_more),
-      );
-    }
-  };
+    },
+    [chat, dispatch, user.id],
+  );
 
-  const sendMessage = () => {
+  const sendMessage = useCallback(() => {
     if (editingMessage) {
       let data = {
         action: 'edit_message',
@@ -147,14 +376,14 @@ const Chat = ({route, navigation}) => {
       setInputValue('');
       setReplyingTo(null);
     }
-  };
+  }, [editingMessage, inputValue, chat?.id, replyingTo]);
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
       () => {
         setKeyboardVisible(true);
-        scrollRef.current.scrollToEnd({animated: true});
+        scrollRef.current?.scrollToEnd({animated: true});
       },
     );
     const keyboardDidHideListener = Keyboard.addListener(
@@ -229,11 +458,11 @@ const Chat = ({route, navigation}) => {
   });
 
   useEffect(() => {
-    const unreadMesages = messages.filter(
+    const unreadMessages = messages.filter(
       message => message.status != 'read' && !message.is_mine,
     );
-    if (unreadMesages.length > 0) {
-      const message_ids = unreadMesages.map(message => message.id);
+    if (unreadMessages.length > 0) {
+      const message_ids = unreadMessages.map(message => message.id);
       const data = {
         action: 'read_message',
         data: {
@@ -245,6 +474,44 @@ const Chat = ({route, navigation}) => {
     }
   }, [messages]);
 
+  const renderMessage = useCallback(
+    (item, index) => {
+      const itemId = item.id || index;
+
+      if (item.type === 'date_separator') {
+        return (
+          <View key={itemId} onLayout={event => onMessageLayout(event, itemId)}>
+            <DateSeparator date={item.date} />
+          </View>
+        );
+      } else {
+        return (
+          <View key={itemId} onLayout={event => onMessageLayout(event, itemId)}>
+            <Message
+              message={item}
+              onReply={message => {
+                setReplyingTo(message);
+              }}
+              onEdit={message => {
+                setEditingMessage(message);
+                setInputValue(message.text);
+              }}
+              myBubbleColor={settings.myBubbleColor}
+              otherBubbleColor={settings.otherBubbleColor}
+              fontSize={settings.fontSize}
+            />
+          </View>
+        );
+      }
+    },
+    [
+      onMessageLayout,
+      settings.myBubbleColor,
+      settings.otherBubbleColor,
+      settings.fontSize,
+    ],
+  );
+
   return (
     <View style={{flex: 1}}>
       <KeyboardAvoidingView
@@ -252,37 +519,29 @@ const Chat = ({route, navigation}) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={isKeyboardVisible ? 0 : -50}>
         <Header top={insets.top} navigation={navigation} chat={chat} />
+
+        <StickyDateHeader
+          currentDate={currentTopDate}
+          isVisible={showStickyDate}
+        />
+
         <ImageBackground
           style={{flex: 1, backgroundColor: '#141516'}}
           source={{uri: settings.backgroundImage}}>
           <ScrollView
             style={styles.chatContainer}
             ref={scrollRef}
-            keyboardShouldPersistTaps="handled" // This is key
+            keyboardShouldPersistTaps="handled"
             keyboardDismissMode="none"
-            onScroll={handleScroll}
+            onScroll={throttledScrollHandler}
+            scrollEventThrottle={32}
             contentContainerStyle={{
               flexGrow: 1,
               justifyContent: 'flex-end',
               paddingBottom: 10,
               paddingTop: 120,
             }}>
-            {messages.map((message, index) => (
-              <Message
-                key={index}
-                message={message}
-                onReply={message => {
-                  setReplyingTo(message);
-                }}
-                onEdit={message => {
-                  setEditingMessage(message);
-                  setInputValue(message.text);
-                }}
-                myBubbleColor={settings.myBubbleColor}
-                otherBubbleColor={settings.otherBubbleColor}
-                fontSize={settings.fontSize}
-              />
-            ))}
+            {processedMessages.map(renderMessage)}
           </ScrollView>
         </ImageBackground>
 
@@ -397,7 +656,6 @@ const styles = StyleSheet.create({
   },
   replyingTo: {
     backgroundColor: '#202324',
-    // flex: 0.2,
     borderBottomColor: 'grey',
     borderBottomWidth: 1,
     borderTopColor: 'grey',
@@ -406,6 +664,44 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     flexDirection: 'row',
+  },
+  dateSeparator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    paddingHorizontal: 20,
+  },
+  dateSeparatorLine: {
+    flex: 1,
+    height: 1,
+  },
+  dateSeparatorText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    fontWeight: '500',
+    paddingHorizontal: 15,
+    backgroundColor: 'rgba(32, 35, 36, 0.8)',
+    borderRadius: 12,
+    paddingVertical: 4,
+  },
+  stickyDateHeader: {
+    position: 'absolute',
+    top: 130,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  stickyDateText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    backgroundColor: 'rgba(32, 35, 36, 0.9)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
 });
 

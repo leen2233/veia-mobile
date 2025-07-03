@@ -57,7 +57,7 @@ const Message = ({
   onEdit,
   myBubbleColor = '#c96442',
   otherBubbleColor = '#202324',
-  fontSize,
+  fontSize = 18,
 }) => {
   const [isMenuVisible, setMenuVisible] = useState(false);
   const [menuPosition, setMenuPosition] = useState({x: 0, y: 0});
